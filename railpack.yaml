@@ -1,0 +1,10 @@
+name: nyaya-voice
+description: Voice-first multilingual legal aid assistant
+
+start: bash start.sh
+
+build:
+  - pip install -r requirements.txt
+
+env:
+  PORT: "8080"

@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyayaVoice — Legal Aid Assistant</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    #landingScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: linear-gradient(145deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 70%, #164e63 100%);
+      color: #f8fafc;
+      overflow: auto;
+    }
+    .landing-lang {
+      position: absolute;
+      top: 1rem;
+      right: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.9rem;
+      z-index: 2;
+    }
+    .landing-lang button {
+      background: transparent;
+      border: none;
+      color: #e2e8f0;
+      cursor: pointer;
+      font: inherit;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+    .landing-lang button:hover { background: rgba(255,255,255,0.1); }
+    .landing-lang .landing-lang-sep { opacity: 0.6; }
+    .landing-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 1.5rem 2rem;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .landing-brand {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .landing-brand .landing-icon {
+      font-size: 3.5rem;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    .landing-brand h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .landing-tagline {
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      font-weight: 600;
+      color: #7dd3fc;
+      text-align: center;
+      margin: 0 0 1rem;
+      max-width: 36rem;
+    }
+    .landing-desc {
+      text-align: center;
+      color: #cbd5e1;
+      line-height: 1.65;
+      max-width: 38rem;
+      margin: 0 0 2rem;
+      font-size: 0.95rem;
+    }
+    .landing-features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 720px) {
+      .landing-features { grid-template-columns: 1fr; }
+    }
+    .landing-feature-card {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: left;
+    }
+    .landing-feature-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      color: #f1f5f9;
+    }
+    .landing-feature-card p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .landing-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .landing-btn {
+      padding: 0.85rem 1.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      border: 2px solid transparent;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .landing-btn:hover { transform: translateY(-1px); }
+    .landing-btn-primary {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+    }
+    .landing-btn-outline {
+      background: transparent;
+      color: #e2e8f0;
+      border-color: rgba(226, 232, 240, 0.5);
+    }
+    .landing-btn-outline:hover { background: rgba(255,255,255,0.08); }
+    .landing-emergency {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: rgba(0, 0, 0, 0.35);
+      border-top: 1px solid rgba(148, 163, 184, 0.2);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem 1.25rem;
+      font-size: 0.875rem;
+    }
+    .landing-emergency a {
+      color: #7dd3fc;
+      text-decoration: none;
+    }
+    .landing-emergency a:hover { text-decoration: underline; }
+    #authModal {
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.75);
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    #authModal.auth-modal-open { display: flex; }
+    .auth-modal-card {
+      background: var(--card-bg, #fff);
+      color: var(--text, #0f172a);
+      border-radius: 16px;
+      max-width: 420px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: auto;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
+      position: relative;
+      padding: 1.5rem;
+    }
+    html[dir="rtl"] .auth-modal-card { direction: rtl; }
+    .auth-close {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 2.25rem;
+      height: 2.25rem;
+      border: none;
+      background: transparent;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.7;
+    }
+    .auth-close:hover { opacity: 1; }
+    .auth-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1.25rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      background: transparent;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      color: #64748b;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .auth-tab.active {
+      color: #0284c7;
+      border-bottom-color: #0284c7;
+    }
+    .auth-form label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin: 0.75rem 0 0.35rem;
+    }
+    .auth-form input {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+      box-sizing: border-box;
+    }
+    .auth-form .btn-auth-submit {
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: #0284c7;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .auth-forgot {
+      display: block;
+      text-align: right;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #0284c7;
+      text-decoration: none;
+    }
+    .auth-or-demo {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    #demoTour {
+      position: fixed;
+      inset: 0;
+      z-index: 10002;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.55);
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .demo-tour-card {
+      background: var(--card-bg, #fff);
+      color: var(--text, #0f172a);
+      border-radius: 16px;
+      max-width: 440px;
+      width: 100%;
+      padding: 1.5rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .demo-tour-indicator {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #0284c7;
+      margin-bottom: 0.75rem;
+    }
+    .demo-tour-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.15rem;
+    }
+    .demo-tour-card p {
+      margin: 0 0 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: #475569;
+    }
+    .demo-tour-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+    .demo-tour-actions button {
+      padding: 0.55rem 1.1rem;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .demo-btn-skip {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      color: #64748b;
+    }
+    .demo-btn-next, .demo-btn-finish {
+      background: #0284c7;
+      border: none;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LANDING SCREEN ─────────────────────────────────── -->
+<div id="landingScreen" class="landing-screen">
+  <div class="landing-lang" id="landingLangToggle" aria-label="Language">
+    <button type="button" data-landing-lang="en">EN</button>
+    <span class="landing-lang-sep">/</span>
+    <button type="button" data-landing-lang="hi">हिन्दी</button>
+  </div>
+  <div class="landing-inner">
+    <div class="landing-brand">
+      <div class="landing-icon" aria-hidden="true">&#9878;</div>
+      <h1>NyayaVoice</h1>
+    </div>
+    <p class="landing-tagline" data-i18n="landingTagline">Empowering Access to Justice Through Voice</p>
+    <p class="landing-desc" data-i18n="landingDesc">NyayaVoice is a voice-first legal aid assistant that helps you understand your rights, draft complaints, and navigate the justice system in plain language — in English and Hindi.</p>
+    <div class="landing-features">
+      <div class="landing-feature-card">
+        <h3 data-i18n="landingFeature1">Voice-First Legal Aid</h3>
+        <p data-i18n="landingFeature1Desc">Speak naturally to describe your situation and get guidance without typing.</p>
+      </div>
+      <div class="landing-feature-card">
+        <h3 data-i18n="landingFeature2">AI-Powered Analysis</h3>
+        <p data-i18n="landingFeature2Desc">Evidence-aware insights and case predictions grounded in legal references.</p>
+      </div>
+      <div class="landing-feature-card">
+        <h3 data-i18n="landingFeature3">Bilingual Support</h3>
+        <p data-i18n="landingFeature3Desc">Switch between English and Hindi for guidance that stays clear and accessible.</p>
+      </div>
+    </div>
+    <div class="landing-ctas">
+      <button type="button" id="liveDemoBtn" class="landing-btn landing-btn-outline" data-i18n="landingLiveDemo">Live Demo</button>
+      <button type="button" id="getStartedBtn" class="landing-btn landing-btn-primary" data-i18n="landingGetStarted">Get Started</button>
+    </div>
+  </div>
+  <div class="landing-emergency">
+    <span data-i18n="emergencyQ">Emergency?</span>
+    <a href="tel:100"><span data-i18n="emergencyPolice">Police: 100</span></a>
+    <a href="tel:181"><span data-i18n="emergencyWomen">Women: 181</span></a>
+    <a href="tel:112"><span data-i18n="emergencyAll">Emergency: 112</span></a>
+    <a href="tel:1098"><span data-i18n="emergencyChild">Child: 1098</span></a>
+  </div>
+</div>
+
+<!-- ── AUTH MODAL ─────────────────────────────────────── -->
+<div id="authModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+  <div class="auth-modal-card">
+    <h2 id="authModalTitle" class="sr-only" data-i18n="authLogin">Login</h2>
+    <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">&times;</button>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" id="authLoginTab" data-i18n="authLogin">Login</button>
+      <button type="button" class="auth-tab" id="authSignupTab" data-i18n="authSignup">Sign Up</button>
+    </div>
+    <form class="auth-form" id="authLoginForm">
+      <label for="authLoginEmail" data-i18n="authEmail">Email</label>
+      <input type="email" id="authLoginEmail" autocomplete="email">
+      <label for="authLoginPassword" data-i18n="authPassword">Password</label>
+      <input type="password" id="authLoginPassword" autocomplete="current-password">
+      <a href="#" class="auth-forgot" data-i18n="authForgotPw">Forgot password?</a>
+      <button type="button" class="btn-auth-submit" id="authLoginBtn" data-i18n="authLoginBtn">Login</button>
+      <p class="auth-or-demo" data-i18n="authOrDemo">Or continue with demo access</p>
+    </form>
+    <form class="auth-form" id="authSignupForm" style="display:none;">
+      <label for="authSignupName" data-i18n="authName">Name</label>
+      <input type="text" id="authSignupName" autocomplete="name">
+      <label for="authSignupEmail" data-i18n="authEmail">Email</label>
+      <input type="email" id="authSignupEmail" autocomplete="email">
+      <label for="authSignupPassword" data-i18n="authPassword">Password</label>
+      <input type="password" id="authSignupPassword" autocomplete="new-password">
+      <label for="authSignupConfirm" data-i18n="authConfirmPw">Confirm Password</label>
+      <input type="password" id="authSignupConfirm" autocomplete="new-password">
+      <button type="button" class="btn-auth-submit" id="authSignupBtn" data-i18n="authSignupBtn">Sign Up</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── DEMO TOUR ──────────────────────────────────────── -->
+<div id="demoTour" class="demo-tour" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="demoTourTitle">
+  <div class="demo-tour-card">
+    <div class="demo-tour-indicator" id="demoTourStepIndicator" aria-live="polite">1 / 5</div>
+    <div id="demoTourStepContent">
+      <div class="demo-step-panel" data-demo-step="1">
+        <h3 id="demoTourTitle" data-i18n="demoStep1Title">Dashboard</h3>
+        <p data-i18n="demoStep1Desc">Your home base for quick actions, daily legal tips, and voice controls.</p>
+      </div>
+      <div class="demo-step-panel" data-demo-step="2" style="display:none;">
+        <h3 data-i18n="demoStep2Title">Chat &amp; Voice</h3>
+        <p data-i18n="demoStep2Desc">Ask legal questions by typing or using the microphone in your language.</p>
+      </div>
+      <div class="demo-step-panel" data-demo-step="3" style="display:none;">
+        <h3 data-i18n="demoStep3Title">FIR Wizard</h3>
+        <p data-i18n="demoStep3Desc">Step through guided questions to draft a ready-to-file FIR with legal tips.</p>
+      </div>
+      <div class="demo-step-panel" data-demo-step="4" style="display:none;">
+        <h3 data-i18n="demoStep4Title">Case Predictor</h3>
+        <p data-i18n="demoStep4Desc">Upload documents and describe your case for AI-powered outcome insights.</p>
+      </div>
+      <div class="demo-step-panel" data-demo-step="5" style="display:none;">
+        <h3 data-i18n="demoStep5Title">Know Your Rights</h3>
+        <p data-i18n="demoStep5Desc">Browse verified summaries of Indian laws and your fundamental protections.</p>
+      </div>
+    </div>
+    <div class="demo-tour-actions">
+      <button type="button" class="demo-btn-skip" id="demoTourSkip" data-i18n="demoSkip">Skip</button>
+      <button type="button" class="demo-btn-next" id="demoTourNext" data-i18n="demoNext">Next</button>
+      <button type="button" class="demo-btn-finish" id="demoTourFinish" style="display:none;" data-i18n="demoFinish">Finish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SIDEBAR ─────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar" style="display:none;">
+  <div class="sidebar-brand">
+    <div class="brand-icon">&#9878;</div>
+    <div>
+      <div class="brand-name">NyayaVoice</div>
+      <div class="brand-sub" data-i18n="brandSub">Legal Aid Assistant</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <button class="nav-btn active" data-page="dashboard">
+      <span class="nav-icon">&#127968;</span>
+      <span data-i18n="navDash">Dashboard</span>
+    </button>
+    <button class="nav-btn" data-page="chat">
+      <span class="nav-icon">&#128172;</span>
+      <span data-i18n="navChat">Ask Legal Help</span>
+    </button>
+    <button class="nav-btn" data-page="fir">
+      <span class="nav-icon">&#128221;</span>
+      <span data-i18n="navFir">FIR Wizard</span>
+    </button>
+    <button class="nav-btn" data-page="predict">
+      <span class="nav-icon">&#129504;</span>
+      <span data-i18n="navPredict">Case Predictor</span>
+    </button>
+    <button class="nav-btn" data-page="risk">
+      <span class="nav-icon">&#9888;</span>
+      <span data-i18n="navRisk">Risk Score</span>
+    </button>
+    <button class="nav-btn" data-page="docs">
+      <span class="nav-icon">&#128196;</span>
+      <span data-i18n="navDocs">My Documents</span>
+    </button>
+    <button class="nav-btn" data-page="rights">
+      <span class="nav-icon">&#128214;</span>
+      <span data-i18n="navRights">Know Your Rights</span>
+    </button>
+    <button class="nav-btn" data-page="helplines">
+      <span class="nav-icon">&#128222;</span>
+      <span data-i18n="navHelplines">Helplines</span>
+    </button>
+    <button class="nav-btn" data-page="settings">
+      <span class="nav-icon">&#9881;</span>
+      <span data-i18n="navSettings">Settings</span>
+    </button>
+  </nav>
+
+  <!-- Emergency strip -->
+  <div class="emergency-strip">
+    <div class="emergency-title" data-i18n="emergencyQ">Emergency?</div>
+    <a href="tel:100" class="emergency-link"><span data-i18n="emergencyPolice">Police: 100</span></a>
+    <a href="tel:181" class="emergency-link"><span data-i18n="emergencyWomen">Women: 181</span></a>
+    <a href="tel:112" class="emergency-link"><span data-i18n="emergencyAll">Emergency: 112</span></a>
+    <a href="tel:1098" class="emergency-link"><span data-i18n="emergencyChild">Child: 1098</span></a>
+  </div>
+</aside>
+
+<!-- ── MOBILE TOP BAR ──────────────────────────────────── -->
+<header class="mobile-header" id="mobileHeader" style="display:none;">
+  <button class="hamburger" id="hamburgerBtn" aria-label="Menu">&#9776;</button>
+  <div class="mobile-brand">&#9878; NyayaVoice</div>
+  <select class="lang-switch-mobile" id="langSwitchMobile">
+    <option value="en">EN</option>
+    <option value="hi">हिन्दी</option>
+  </select>
+</header>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────── -->
+<main class="main" id="mainContent" style="display:none;">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="user-greeting" id="userNameDisplay" data-i18n="anonUser">Anonymous User</span>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
+        </svg>
+      </button>
+      <select class="lang-switch" id="langSwitch">
+        <option value="en">English</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Offline banner -->
+  <div class="offline-banner" id="offlineBanner" style="display:none;">
+    <span data-i18n="offlineMsg">You are offline. Basic legal guidance is still available.</span>
+  </div>
+
+  <!-- ═══ PAGE: DASHBOARD ═══ -->
+  <section class="page active" id="page-dashboard">
+    <div class="dash-hero">
+      <h1 data-i18n="dashWelcome">Welcome to NyayaVoice</h1>
+      <p data-i18n="dashSub">Your voice-first AI legal aid assistant. Speak or type in your language.</p>
+    </div>
+
+    <!-- Voice control -->
+    <div class="voice-control">
+      <button class="mic-btn" id="micBtn" aria-label="Tap mic to speak">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+      </button>
+      <div class="mic-label" data-i18n="vcLabel">Tap mic to speak</div>
+      <div class="mic-status" id="micStatus" data-i18n="vcReady">READY</div>
+      <div class="mic-hint" data-i18n="vcHint">Hindi • English</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label" data-i18n="statMsgs">Messages</div></div>
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label" data-i18n="statDocs">Documents</div></div>
+      <div class="stat-card"><div class="stat-num">2</div><div class="stat-label" data-i18n="statLangs">Languages</div></div>
+      <div class="stat-card"><div class="stat-num">12</div><div class="stat-label" data-i18n="statTopics">Legal Topics</div></div>
+    </div>
+
+    <!-- Daily Legal Tip -->
+    <div class="card legal-tip-card">
+      <div class="legal-tip-badge" data-i18n="dailyTipBadge">Today's Legal Tip</div>
+      <p class="legal-tip-text" data-i18n="dailyTip">Did you know? Under Section 166A of IPC, if a police officer refuses to register your FIR, they can be punished with imprisonment up to 2 years. Filing an FIR is your legal right — no police station can deny it.</p>
+    </div>
+
+    <!-- Quick action cards -->
+    <h3 data-i18n="quickActions">Quick Actions</h3>
+    <div class="quick-actions-grid">
+      <button class="quick-action-card" data-page="fir">
+        <div class="qa-icon">&#128221;</div>
+        <div class="qa-title" data-i18n="qaFir">File an FIR</div>
+        <div class="qa-desc" data-i18n="qaFirDesc">Step-by-step guided FIR drafting with legal references</div>
+      </button>
+      <button class="quick-action-card" data-page="predict">
+        <div class="qa-icon">&#129504;</div>
+        <div class="qa-title" data-i18n="qaPredict">Predict Case Outcome</div>
+        <div class="qa-desc" data-i18n="qaPredictDesc">Upload evidence and get AI-powered case analysis</div>
+      </button>
+      <button class="quick-action-card" data-page="risk">
+        <div class="qa-icon">&#9888;</div>
+        <div class="qa-title" data-i18n="qaRisk">Check Legal Risk</div>
+        <div class="qa-desc" data-i18n="qaRiskDesc">Instant risk assessment with actionable next steps</div>
+      </button>
+      <button class="quick-action-card" data-page="rights">
+        <div class="qa-icon">&#128214;</div>
+        <div class="qa-title" data-i18n="qaRights">Know Your Rights</div>
+        <div class="qa-desc" data-i18n="qaRightsDesc">Verified legal rights explained in simple language</div>
+      </button>
+    </div>
+
+    <!-- Common issues chips -->
+    <h3 data-i18n="commonIssues">Common Issues</h3>
+    <div class="chip-row">
+      <button class="chip" data-i18n="chip_theft">Theft / FIR</button>
+      <button class="chip" data-i18n="chip_dv">Domestic Violence</button>
+      <button class="chip" data-i18n="chip_wage">Wage Theft</button>
+      <button class="chip" data-i18n="chip_legal">Free Legal Aid</button>
+      <button class="chip" data-i18n="chip_harass">Harassment</button>
+      <button class="chip" data-i18n="chip_land">Land Dispute</button>
+      <button class="chip" data-i18n="chip_cyber">Cyber Crime</button>
+      <button class="chip" data-i18n="chip_consumer">Consumer Rights</button>
+    </div>
+
+    <!-- How it works -->
+    <div class="card how-card">
+      <h3 data-i18n="howTitle">How It Works</h3>
+      <ol class="how-list">
+        <li data-i18n="how1">Tap the mic or type your problem</li>
+        <li data-i18n="how2">Speak in Hindi or English</li>
+        <li data-i18n="how3">Get instant legal guidance powered by AI + RAG</li>
+        <li data-i18n="how4">Download a ready-to-submit complaint document</li>
+      </ol>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="card">
+      <h3 data-i18n="recentTitle">Recent Activity</h3>
+      <div class="activity-list">
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div><div class="activity-title" data-i18n="act1">FIR Draft Generated</div><div class="activity-time" data-i18n="act1t">Today, 10:32 AM</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div><div class="activity-title" data-i18n="act2">Wage Theft Query</div><div class="activity-time" data-i18n="act2t">Yesterday, 3:15 PM</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div><div class="activity-title" data-i18n="act3">Domestic Violence Rights</div><div class="activity-time" data-i18n="act3t">2 days ago</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legal disclaimer banner -->
+    <div class="card disclaimer-card">
+      <div class="disclaimer-icon">&#9878;</div>
+      <div>
+        <strong data-i18n="legalNotice">Legal Notice</strong>
+        <p data-i18n="disclaimer">This AI assistant provides general legal information only. For formal legal advice, please consult a qualified lawyer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: CHAT ═══ -->
+  <section class="page" id="page-chat">
+    <h2 data-i18n="navChat">Ask Legal Help</h2>
+    <p class="page-sub chat-page-sub" data-i18n="chatSub">Describe your issue in a few words and we will turn it into clear next steps.</p>
+    <div class="chat-container" id="chatContainer">
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg msg-bot"><div class="msg-bubble" data-i18n="initMsg">Namaste! I am <strong>NyayaVoice</strong> &#9878; &mdash; your AI legal aid assistant.</div></div>
+      </div>
+      <div class="chip-row chat-chips">
+        <button class="chip" data-i18n="chip_theft">Theft / FIR</button>
+        <button class="chip" data-i18n="chip_dv">Domestic Violence</button>
+        <button class="chip" data-i18n="chip_wage">Wage Theft</button>
+        <button class="chip" data-i18n="chip_legal">Free Legal Aid</button>
+        <button class="chip" data-i18n="chip_land">Land Dispute</button>
+        <button class="chip" data-i18n="chip_cyber">Cyber Crime</button>
+        <button class="chip" data-i18n="chip_consumer">Consumer Rights</button>
+        <button class="chip" data-i18n="chip_rti">RTI</button>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" class="chat-input" id="chatInput" data-i18n-placeholder="chatPlaceholder" placeholder="Describe your legal problem...">
+        <button class="send-btn" id="sendBtn" aria-label="Send">&#10148;</button>
+        <button class="mic-btn-sm" id="chatMicBtn" aria-label="Voice">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: FIR WIZARD ═══ -->
+  <section class="page" id="page-fir">
+    <h2 data-i18n="firTitle">FIR Wizard</h2>
+    <p class="page-sub" data-i18n="firSub">Answer a few questions and we will generate your FIR draft automatically.</p>
+
+    <!-- FIR legal info banner -->
+    <div class="info-banner">
+      <div class="info-banner-icon">&#9878;</div>
+      <div>
+        <strong data-i18n="firLegalInfo">Your Legal Right</strong>
+        <p data-i18n="firLegalInfoDesc">Under Section 154 of CrPC, every police station MUST register your FIR. Refusal is punishable under Section 166A IPC (up to 2 years imprisonment). You can also file a Zero FIR at any police station regardless of jurisdiction.</p>
+      </div>
+    </div>
+
+    <div class="wizard" id="firWizard">
+      <!-- Step 1 -->
+      <div class="wizard-step active" data-step="1">
+        <div class="step-indicator">1 / 5</div>
+        <h3 data-i18n="fir1Title">What happened?</h3>
+        <p class="hint" data-i18n="fir1Hint">Describe the incident in your own words</p>
+        <div class="input-with-voice">
+          <textarea class="form-textarea" id="firIncident" data-i18n-placeholder="fir1Ph" placeholder="e.g. My phone was stolen at the market yesterday evening..."></textarea>
+          <button class="voice-input-btn" data-voice-target="firIncident" type="button" aria-label="Voice input">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+          </button>
+        </div>
+        <div class="legal-tip-inline">
+          <strong data-i18n="firTip1Label">Applicable Law:</strong>
+          <span data-i18n="firTip1">For theft — IPC Section 378/379. For robbery — IPC Section 390/392. For snatching — IPC Section 356/379.</span>
+        </div>
+        <div class="wizard-btns"><button class="btn btn-primary wizard-next" data-i18n="btnNext">Next</button></div>
+      </div>
+      <!-- Step 2 -->
+      <div class="wizard-step" data-step="2">
+        <div class="step-indicator">2 / 5</div>
+        <h3 data-i18n="fir2Title">When did it happen?</h3>
+        <p class="hint" data-i18n="fir2Hint">Date and approximate time</p>
+        <input type="datetime-local" class="form-input" id="firDate">
+        <div class="legal-tip-inline">
+          <strong data-i18n="firTip2Label">Important:</strong>
+          <span data-i18n="firTip2">There is NO time limit for filing an FIR. However, filing promptly strengthens your case. Delay must be explained to the court if questioned.</span>
+        </div>
+        <div class="wizard-btns"><button class="btn btn-secondary wizard-back" data-i18n="btnBack">Back</button><button class="btn btn-primary wizard-next" data-i18n="btnNext">Next</button></div>
+      </div>
+      <!-- Step 3 -->
+      <div class="wizard-step" data-step="3">
+        <div class="step-indicator">3 / 5</div>
+        <h3 data-i18n="fir3Title">Where did it happen?</h3>
+        <p class="hint" data-i18n="fir3Hint">Location / address / landmark</p>
+        <div class="input-with-voice">
+          <input type="text" class="form-input" id="firLocation" data-i18n-placeholder="fir3Ph" placeholder="e.g. Main Bazaar, Sector 12, Delhi">
+          <button class="voice-input-btn" data-voice-target="firLocation" type="button" aria-label="Voice input">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+          </button>
+        </div>
+        <button class="btn btn-outline" id="detectLocationBtn" style="margin-top:8px;"><span data-i18n="firDetect">Detect My Location</span></button>
+        <div class="legal-tip-inline">
+          <strong data-i18n="firTip3Label">Zero FIR:</strong>
+          <span data-i18n="firTip3">You can file a Zero FIR at ANY police station. The FIR will be transferred to the correct jurisdiction automatically. No station can refuse citing jurisdiction.</span>
+        </div>
+        <div class="wizard-btns"><button class="btn btn-secondary wizard-back" data-i18n="btnBack">Back</button><button class="btn btn-primary wizard-next" data-i18n="btnNext">Next</button></div>
+      </div>
+      <!-- Step 4 -->
+      <div class="wizard-step" data-step="4">
+        <div class="step-indicator">4 / 5</div>
+        <h3 data-i18n="fir4Title">Who was involved?</h3>
+        <p class="hint" data-i18n="fir4Hint">Suspect details (if known) and any witnesses</p>
+        <div class="input-with-voice">
+          <input type="text" class="form-input" id="firSuspect" data-i18n-placeholder="fir4SuspPh" placeholder="Suspect description (optional)">
+          <button class="voice-input-btn" data-voice-target="firSuspect" type="button" aria-label="Voice input">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+          </button>
+        </div>
+        <input type="text" class="form-input" id="firWitness" data-i18n-placeholder="fir4WitPh" placeholder="Witness name/contact (optional)" style="margin-top:.5rem;">
+        <div class="legal-tip-inline">
+          <strong data-i18n="firTip4Label">Tip:</strong>
+          <span data-i18n="firTip4">An FIR can be filed even without knowing the suspect. Include any identifying details — appearance, vehicle number, direction of escape. Witness statements strengthen the case.</span>
+        </div>
+        <div class="wizard-btns"><button class="btn btn-secondary wizard-back" data-i18n="btnBack">Back</button><button class="btn btn-primary wizard-next" data-i18n="btnNext">Next</button></div>
+      </div>
+      <!-- Step 5 -->
+      <div class="wizard-step" data-step="5">
+        <div class="step-indicator">5 / 5</div>
+        <h3 data-i18n="fir5Title">Review & Generate</h3>
+        <p class="hint" data-i18n="fir5Hint">Confirm your details before generating the FIR</p>
+        <div class="fir-review" id="firReview"></div>
+        <div class="legal-tip-inline">
+          <strong data-i18n="firTip5Label">After filing:</strong>
+          <span data-i18n="firTip5">You are legally entitled to a free copy of the FIR (Section 154(2) CrPC). Keep it safe — you will need it for insurance claims, court proceedings, and follow-up.</span>
+        </div>
+        <div class="wizard-btns"><button class="btn btn-secondary wizard-back" data-i18n="btnBack">Back</button><button class="btn btn-primary" id="firGenerateBtn" data-i18n="firGenerate">Generate FIR PDF</button></div>
+      </div>
+      <!-- Done -->
+      <div class="wizard-step" data-step="done" style="display:none;">
+        <div class="fir-done">
+          <div class="done-icon">&#9989;</div>
+          <h3 data-i18n="firDoneTitle">FIR Draft Ready!</h3>
+          <p data-i18n="firDoneDesc">Your FIR has been generated. Download it and take it to the nearest police station.</p>
+          <div class="wizard-btns" style="justify-content:center;">
+            <button class="btn btn-primary" data-i18n="firDownload">Download PDF</button>
+            <button class="btn btn-outline" data-i18n="firWhatsapp">Share via WhatsApp</button>
+          </div>
+          <button class="btn btn-secondary" id="firNewBtn" data-i18n="firNew" style="margin-top:1rem;">+ New FIR</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: CASE PREDICTOR ═══ -->
+  <section class="page" id="page-predict">
+    <h2 data-i18n="predictTitle">Case Outcome Predictor</h2>
+    <p class="page-sub" data-i18n="predictSub">Describe your case and our AI will predict the likely outcome based on similar past cases.</p>
+
+    <div class="card">
+      <h3 data-i18n="predictDescCase">Describe Your Case</h3>
+      <label data-i18n="predictCaseType">Case Type</label>
+      <select class="form-select" id="predictCaseType">
+        <option value="" data-i18n="predictSelectType">Select case type...</option>
+        <option value="theft" data-i18n="pt_theft">Theft / Robbery</option>
+        <option value="dv" data-i18n="pt_dv">Domestic Violence</option>
+        <option value="wage" data-i18n="pt_wage">Wage Theft / Labour</option>
+        <option value="harass" data-i18n="pt_harass">Harassment / POSH</option>
+        <option value="land" data-i18n="pt_land">Land / Property Dispute</option>
+        <option value="cyber" data-i18n="pt_cyber">Cyber Crime / Fraud</option>
+        <option value="consumer" data-i18n="pt_consumer">Consumer Complaint</option>
+      </select>
+
+      <label data-i18n="predictKeyFacts">Key Facts</label>
+      <div class="input-with-voice">
+        <textarea class="form-textarea" id="predictFacts" data-i18n-placeholder="predictFactsPh" placeholder="Describe what happened, evidence you have, timeline..."></textarea>
+        <button class="voice-input-btn" data-voice-target="predictFacts" type="button" aria-label="Voice input">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+        </button>
+      </div>
+
+      <label data-i18n="predictEvidence">Evidence Available</label>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" value="cctv"> <span data-i18n="ev_cctv">CCTV Footage</span></label>
+        <label class="check-item"><input type="checkbox" value="witness"> <span data-i18n="ev_witness">Witnesses</span></label>
+        <label class="check-item"><input type="checkbox" value="docs"> <span data-i18n="ev_docs">Documents</span></label>
+        <label class="check-item"><input type="checkbox" value="medical"> <span data-i18n="ev_medical">Medical Report</span></label>
+        <label class="check-item"><input type="checkbox" value="digital"> <span data-i18n="ev_digital">Digital Evidence</span></label>
+        <label class="check-item"><input type="checkbox" value="none"> <span data-i18n="ev_none">None</span></label>
+      </div>
+
+      <!-- File / Document Upload -->
+      <label data-i18n="uploadLabel">Upload Evidence & Documents</label>
+      <p class="hint" data-i18n="uploadHint">Upload photographs, legal documents, contracts, receipts, or any other artifacts relevant to your case.</p>
+
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-zone-icon">
+          <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M24 32V16m0 0l-6 6m6-6l6 6"/>
+            <path d="M8 32v4a4 4 0 004 4h24a4 4 0 004-4v-4"/>
+          </svg>
+        </div>
+        <div class="upload-zone-text" data-i18n="uploadDragDrop">Drag & drop files here or click to browse</div>
+        <div class="upload-zone-formats" data-i18n="uploadFormats">Supported: PDF, JPG, PNG, DOC, DOCX (Max 25MB each)</div>
+        <input type="file" id="fileUploadInput" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.txt,.csv" style="display:none;">
+      </div>
+
+      <div class="uploaded-files" id="uploadedFilesList"></div>
+
+      <button class="btn btn-primary" id="predictBtn" style="margin-top:16px;" data-i18n="predictBtn">Predict Outcome</button>
+    </div>
+
+    <!-- Prediction Results -->
+    <div class="card predict-results" id="predictResults" style="display:none;">
+      <h3 data-i18n="predictResults">Prediction Results</h3>
+
+      <div class="predict-meters">
+        <div class="meter"><div class="meter-fill" id="meterSuccess" style="width:0%"></div><span class="meter-label" data-i18n="predSuccess">Success</span><span class="meter-val" id="meterSuccessVal">—</span></div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num" id="predTimeVal">—</div><div class="stat-label" data-i18n="predTimeline">Est. Timeline</div></div>
+        <div class="stat-card"><div class="stat-num" id="predCostVal">—</div><div class="stat-label" data-i18n="predCost">Est. Cost</div></div>
+        <div class="stat-card"><div class="stat-num" id="predSimilarVal">—</div><div class="stat-label" data-i18n="predSimilar">Similar Cases</div></div>
+      </div>
+
+      <!-- Applicable laws -->
+      <div class="legal-ref-box">
+        <h4 data-i18n="predApplicableLaws">Applicable Laws & Sections</h4>
+        <div id="predLawsList" class="law-tags"></div>
+      </div>
+
+      <!-- Similar cases breakdown -->
+      <h4 data-i18n="predSimilarLabel">Similar Cases (RAG Results)</h4>
+      <div class="similar-cases-bar">
+        <div class="sc-segment sc-won" id="scWon" style="width:60%"><span data-i18n="predWon">Won</span> 60%</div>
+        <div class="sc-segment sc-settled" id="scSettled" style="width:25%"><span data-i18n="predSettled">Settled</span> 25%</div>
+        <div class="sc-segment sc-lost" id="scLost" style="width:15%"><span data-i18n="predLost">Lost</span> 15%</div>
+      </div>
+
+      <!-- Recommended next steps -->
+      <h4 data-i18n="predNextSteps">Recommended Next Steps</h4>
+      <ol class="how-list" id="predActionsList"></ol>
+
+      <p class="disclaimer" data-i18n="predDisclaimer">This prediction is based on similar past cases and is for guidance only. Consult a lawyer for formal advice.</p>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: RISK SCORE ═══ -->
+  <section class="page" id="page-risk">
+    <h2 data-i18n="riskTitle">Legal Risk Score</h2>
+    <p class="page-sub" data-i18n="riskSub">Describe your situation and get an instant risk assessment with recommended actions.</p>
+
+    <div class="card">
+      <label data-i18n="riskCategory">Category</label>
+      <select class="form-select" id="riskCategory">
+        <option value="" data-i18n="predictSelectType">Select case type...</option>
+        <option value="theft" data-i18n="pt_theft">Theft / Robbery</option>
+        <option value="dv" data-i18n="pt_dv">Domestic Violence</option>
+        <option value="wage" data-i18n="pt_wage">Wage Theft / Labour</option>
+        <option value="harass" data-i18n="pt_harass">Harassment / POSH</option>
+        <option value="land" data-i18n="pt_land">Land / Property Dispute</option>
+        <option value="cyber" data-i18n="pt_cyber">Cyber Crime / Fraud</option>
+        <option value="consumer" data-i18n="pt_consumer">Consumer Complaint</option>
+      </select>
+
+      <label data-i18n="riskYourSit">Your Situation</label>
+      <div class="input-with-voice">
+        <textarea class="form-textarea" id="riskSituation" data-i18n-placeholder="riskPh" placeholder="Describe your legal situation in detail..."></textarea>
+        <button class="voice-input-btn" data-voice-target="riskSituation" type="button" aria-label="Voice input">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+        </button>
+      </div>
+
+      <label data-i18n="riskFactors">Additional Factors</label>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" name="rf" value="time"> <span data-i18n="rf_time">Time-sensitive (deadline approaching)</span></label>
+        <label class="check-item"><input type="checkbox" name="rf" value="evidence"> <span data-i18n="rf_evidence">Limited evidence</span></label>
+        <label class="check-item"><input type="checkbox" name="rf" value="opponent"> <span data-i18n="rf_opponent">Opponent has lawyer</span></label>
+        <label class="check-item"><input type="checkbox" name="rf" value="prior"> <span data-i18n="rf_prior">Prior legal history</span></label>
+        <label class="check-item"><input type="checkbox" name="rf" value="financial"> <span data-i18n="rf_financial">Financial constraints</span></label>
+        <label class="check-item"><input type="checkbox" name="rf" value="minor"> <span data-i18n="rf_minor">Minor / child involved</span></label>
+      </div>
+      <button class="btn btn-primary" id="riskCalcBtn" data-i18n="riskCalcBtn">Calculate Risk Score</button>
+    </div>
+
+    <!-- Risk results -->
+    <div class="card risk-result" id="riskResult" style="display:none;">
+      <h3 data-i18n="riskScore">Risk Score</h3>
+      <div class="risk-gauge">
+        <div class="gauge-circle medium" id="gaugeCircle">
+          <span class="gauge-num" id="gaugeNum">45</span>
+          <span class="gauge-label" id="gaugeLabel" data-i18n="riskMedium">MEDIUM</span>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="risk-meter-mini"><div class="risk-meter-fill" id="urgencyFill" style="width:70%;background:var(--danger);"></div></div>
+          <div class="stat-label" data-i18n="riskUrgency">Urgency</div>
+        </div>
+        <div class="stat-card">
+          <div class="risk-meter-mini"><div class="risk-meter-fill" id="complexityFill" style="width:50%;background:var(--warning);"></div></div>
+          <div class="stat-label" data-i18n="riskComplexity">Complexity</div>
+        </div>
+        <div class="stat-card">
+          <div class="risk-meter-mini"><div class="risk-meter-fill" id="evidenceFill" style="width:40%;background:var(--success);"></div></div>
+          <div class="stat-label" data-i18n="riskEvidence">Evidence</div>
+        </div>
+      </div>
+
+      <!-- Applicable laws -->
+      <div class="legal-ref-box">
+        <h4 data-i18n="riskApplicableLaws">Applicable Laws</h4>
+        <div id="riskLawsList" class="law-tags"></div>
+      </div>
+
+      <h4 data-i18n="riskActions">Recommended Actions</h4>
+      <ol class="action-steps" id="riskActionsList"></ol>
+
+      <h4 data-i18n="riskTimeline">Expected Timeline</h4>
+      <div class="timeline-bar" id="riskTimelineBar"></div>
+
+      <div class="info-banner" style="margin-top:16px;">
+        <div class="info-banner-icon">&#128161;</div>
+        <div>
+          <strong data-i18n="riskFreeAidTitle">Free Legal Aid Available</strong>
+          <p data-i18n="riskFreeAidDesc">If you cannot afford a lawyer, you are entitled to free legal aid under Article 39A of the Constitution. Contact NALSA Helpline: 15100 or your District Legal Services Authority (DLSA).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: MY DOCUMENTS ═══ -->
+  <section class="page" id="page-docs">
+    <div class="page-header-row">
+      <h2 data-i18n="myDocs">My Documents</h2>
+      <button class="btn btn-primary btn-sm" data-i18n="newDoc">+ New Document</button>
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-i18n="filterAll">All</button>
+      <button class="filter-btn" data-i18n="filterFir">FIR</button>
+      <button class="filter-btn" data-i18n="filterComplaints">Complaints</button>
+      <button class="filter-btn" data-i18n="filterLabour">Labour</button>
+    </div>
+    <div class="docs-list">
+      <div class="doc-card">
+        <div class="doc-icon">&#128196;</div>
+        <div class="doc-info">
+          <div class="doc-name">FIR_Draft_2026-04-13.pdf</div>
+          <div class="doc-meta">FIR &bull; <span data-i18n="docReady">Ready</span></div>
+        </div>
+        <button class="btn btn-outline btn-sm" data-i18n="firDownload">Download PDF</button>
+      </div>
+      <div class="doc-card">
+        <div class="doc-icon">&#128196;</div>
+        <div class="doc-info">
+          <div class="doc-name">Labour_Complaint_Draft.pdf</div>
+          <div class="doc-meta">Labour &bull; <span data-i18n="docDraft">Draft</span></div>
+        </div>
+        <button class="btn btn-outline btn-sm" data-i18n="firDownload">Download PDF</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: KNOW YOUR RIGHTS ═══ -->
+  <section class="page" id="page-rights">
+    <h2 data-i18n="knowRights">Know Your Rights</h2>
+    <p class="page-sub" data-i18n="rightsSub">Simplified legal information in plain language</p>
+
+    <div class="info-banner" style="margin-bottom:20px;">
+      <div class="info-banner-icon">&#9878;</div>
+      <div>
+        <strong data-i18n="rightsVerified">Verified Legal Information</strong>
+        <p data-i18n="rightsVerifiedDesc">All information below is based on Indian law — IPC, CrPC, and relevant Acts of Parliament. References to specific sections are provided for verification.</p>
+      </div>
+    </div>
+
+    <div class="accordion" id="rightsAccordion">
+      <details class="accord-item" open>
+        <summary data-i18n="r_theft">Theft & FIR</summary>
+        <div class="accord-body" data-i18n="r_theft_b">If someone steals your belongings, you have the right to file a <strong>First Information Report (FIR)</strong> at the nearest police station — completely free. Police must register under <strong>Section 379 IPC</strong>. You can also file a <strong>Zero FIR</strong> at any station.</div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_dv">Domestic Violence</summary>
+        <div class="accord-body" data-i18n="r_dv_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_wage">Wage Theft & Labour Rights</summary>
+        <div class="accord-body" data-i18n="r_wage_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_harass">Workplace Harassment (POSH)</summary>
+        <div class="accord-body" data-i18n="r_harass_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_legal">Free Legal Aid</summary>
+        <div class="accord-body" data-i18n="r_legal_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_cyber">Cyber Crime</summary>
+        <div class="accord-body" data-i18n="r_cyber_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_consumer">Consumer Rights</summary>
+        <div class="accord-body" data-i18n="r_consumer_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_rti">Right to Information (RTI)</summary>
+        <div class="accord-body" data-i18n="r_rti_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_child">Child Rights & Protection</summary>
+        <div class="accord-body" data-i18n="r_child_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_tenant">Tenant & Rental Rights</summary>
+        <div class="accord-body" data-i18n="r_tenant_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_arrest">Rights During Arrest</summary>
+        <div class="accord-body" data-i18n="r_arrest_b"></div>
+      </details>
+      <details class="accord-item">
+        <summary data-i18n="r_property">Property & Inheritance Rights</summary>
+        <div class="accord-body" data-i18n="r_property_b"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: HELPLINES ═══ -->
+  <section class="page" id="page-helplines">
+    <h2 data-i18n="helplines">Emergency Helplines</h2>
+    <p class="page-sub" data-i18n="helplinesSub">Available 24/7 across India - tap to call</p>
+
+    <div class="helpline-grid">
+      <a href="tel:100" class="helpline-card hl-red"><div class="hl-number">100</div><div data-i18n="hl_police">Police</div></a>
+      <a href="tel:112" class="helpline-card hl-red"><div class="hl-number">112</div><div data-i18n="hl_emergency">Emergency</div></a>
+      <a href="tel:181" class="helpline-card hl-purple"><div class="hl-number">181</div><div data-i18n="hl_women">Women Helpline</div></a>
+      <a href="tel:1098" class="helpline-card hl-blue"><div class="hl-number">1098</div><div data-i18n="hl_child">Child Helpline</div></a>
+      <a href="tel:108" class="helpline-card hl-green"><div class="hl-number">108</div><div data-i18n="hl_ambulance">Ambulance</div></a>
+      <a href="tel:101" class="helpline-card hl-orange"><div class="hl-number">101</div><div data-i18n="hl_fire">Fire</div></a>
+      <a href="tel:15100" class="helpline-card hl-blue"><div class="hl-number">15100</div><div data-i18n="hl_nalsa">NALSA Legal Aid</div></a>
+      <a href="tel:1930" class="helpline-card hl-purple"><div class="hl-number">1930</div><div data-i18n="hl_cyber">Cyber Crime</div></a>
+      <a href="tel:14567" class="helpline-card hl-green"><div class="hl-number">14567</div><div data-i18n="hl_senior">Senior Citizen</div></a>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE: SETTINGS ═══ -->
+  <section class="page" id="page-settings">
+    <h2 data-i18n="settings">Settings</h2>
+
+    <div class="card settings-group">
+      <h3 data-i18n="setLangVoice">Language & Voice</h3>
+      <div class="setting-row">
+        <div><div class="setting-label" data-i18n="setPrefLang">Preferred Language</div><div class="setting-desc" data-i18n="setPrefLangD">Language for responses</div></div>
+        <select class="form-select form-select-sm" id="settingsLang">
+          <option value="en">English</option>
+          <option value="hi">हिन्दी</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label" data-i18n="setSpeed">Voice Speed</div><div class="setting-desc" data-i18n="setSpeedD">Speed of AI voice responses</div></div>
+        <select class="form-select form-select-sm" id="settingsSpeed">
+          <option value="normal" data-i18n="speedNormal">Normal</option>
+          <option value="slow" data-i18n="speedSlow">Slow</option>
+          <option value="fast" data-i18n="speedFast">Fast</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card settings-group">
+      <h3 data-i18n="setPrivacy">Privacy</h3>
+      <div class="setting-row">
+        <div><div class="setting-label" data-i18n="setSaveHist">Save Conversation History</div><div class="setting-desc" data-i18n="setSaveHistD">Store chats locally for context memory</div></div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label" data-i18n="setStoreVoice">Store Voice Recordings</div><div class="setting-desc" data-i18n="setStoreVoiceD">Keep audio for quality improvement</div></div>
+        <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <div class="card settings-group">
+      <h3 data-i18n="setAccount">Account</h3>
+      <div class="setting-row">
+        <div><div class="setting-label" data-i18n="setUserId">Your User ID</div><div class="setting-desc" id="userIdDisplay">anon_user_001</div></div>
+      </div>
+      <button class="btn btn-danger" id="clearDataBtn" data-i18n="clearData">Clear All Data</button>
+    </div>
+
+    <div class="card settings-group">
+      <h3 data-i18n="setAbout">About</h3>
+      <p data-i18n="aboutDesc">Empowering access to justice through voice technology for rural communities, low-literacy individuals, and migrant workers across India.</p>
+      <p class="disclaimer" data-i18n="disclaimer">This AI assistant provides general legal information only. For formal legal advice, please consult a qualified lawyer.</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.2.3/dist/vapi.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
