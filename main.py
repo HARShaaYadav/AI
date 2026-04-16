@@ -144,13 +144,17 @@ async def vapi_webhook(request: Request):
                         f"Always respond in {lang_name}. Use simple everyday language. "
                         f"Be empathetic. If the user is in danger, immediately give emergency numbers: "
                         f"Police 100, Women Helpline 181, Emergency 112. "
-                        f"Ask one question at a time. Help users understand their rights and file complaints. "
+                        f"Answer the user's exact question directly before giving extra background. "
+                        f"Do not give a generic overview when the user asks something specific like how to file a case or FIR. "
+                        f"Use the query_legal tool before answering legal questions so your answer stays grounded in the knowledge base. "
+                        f"If the question is unclear, ask only one short follow-up question at a time. "
+                        f"Help users understand their rights and file complaints. "
                         f"When you have enough details, tell the user you will generate a document for them."
                     ),
                     "functions": [
                         {
                             "name": "query_legal",
-                            "description": "Query the legal knowledge base for relevant legal information.",
+                            "description": "Query the legal knowledge base for relevant legal information. Use this before answering legal questions unless the answer is only a greeting or emergency numbers.",
                             "parameters": {
                                 "type": "object",
                                 "properties": {

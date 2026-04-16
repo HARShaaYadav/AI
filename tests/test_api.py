@@ -4,6 +4,7 @@ Tests for NyayaVoice backend
 import pytest
 from fastapi.testclient import TestClient
 from main import app
+from backend.services import llm
 
 client = TestClient(app)
 
@@ -61,6 +62,34 @@ def test_config_endpoint():
     data = response.json()
     assert "vapi_public_key" in data
     assert "backend_url" in data
+
+
+def test_generate_response_answers_specific_question(monkeypatch):
+    """Specific legal questions should get a targeted answer, not a generic prompt."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [
+        {
+            "content": "You can file an FIR at any police station. This is called a Zero FIR. The police must transfer it to the correct station.",
+            "category": "fir_process",
+            "score": 0.82,
+        },
+        {
+            "content": "You have the right to get a free copy of your FIR after it is registered.",
+            "category": "fir_process",
+            "score": 0.74,
+        },
+    ])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="How do I file an FIR?",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert "nearest police station" in result["response"] or "any police station" in result["response"]
+    assert "Please describe your issue in detail" not in result["response"]
 
 
 if __name__ == "__main__":

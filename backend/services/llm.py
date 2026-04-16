@@ -5,12 +5,32 @@ Voice calls go through Vapi (which handles LLM on its own credits).
 """
 import re
 import logging
+import os
+import requests
 from typing import Dict, List, Any, Optional
 
 from backend.config import SUPPORTED_LANGUAGES, EMERGENCY_KEYWORDS
 from backend.services.qdrant import search_legal_knowledge, get_user_memory
 
 logger = logging.getLogger(__name__)
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+TOPIC_LABELS = {
+    "theft": "theft",
+    "theft_complaint": "theft",
+    "fir_process": "FIR process",
+    "domestic_violence": "domestic violence",
+    "harassment": "harassment",
+    "wage_theft": "unpaid wages",
+    "land_dispute": "land dispute",
+    "cyber_crime": "cyber crime",
+    "consumer_rights": "consumer rights",
+    "legal_aid": "free legal aid",
+    "rti": "RTI",
+    "child_rights": "child rights",
+    "general_legal_query": "legal issue",
+}
 
 INTENT_PATTERNS: Dict[str, str] = {
     "theft_complaint": r"chori|theft|stolen|चोरी|phone|फ़ोन|snatch|rob|loot|लूट",
@@ -110,13 +130,26 @@ def generate_response(
                 "urgency": True,
             }
 
-        legal_results = search_legal_knowledge(user_message, top_k=4)
+        legal_results = search_legal_knowledge(user_message, top_k=6)
         memories = get_user_memory(user_id, top_k=2)
 
-        if legal_results and legal_results[0]["score"] > 0.3:
-            reply = _format_legal_results(legal_results, detected_lang)
+        strong_results = [r for r in legal_results if r["score"] >= 0.25]
+
+        if GEMINI_API_KEY:
+            # Use Gemini LLM to synthesize a tailored response based on RAG context
+            context_str = "\n".join([f"[{r['category'].title()}] {r['content']}" for r in legal_results if r['score'] > 0.2])
+            reply = _generate_with_gemini(user_message, context_str, detected_lang, conversation)
+            if not reply:
+                # Fallback if Gemini fails
+                if strong_results:
+                    reply = _build_grounded_response(user_message, strong_results, intent, detected_lang)
+                else:
+                    reply = _clarifying_or_generic_response(user_message, intent, detected_lang)
         else:
-            reply = _generic_guidance(detected_lang)
+            if strong_results:
+                reply = _build_grounded_response(user_message, strong_results, intent, detected_lang)
+            else:
+                reply = _clarifying_or_generic_response(user_message, intent, detected_lang)
 
         if memories:
             memory_note = _format_memory_note(memories, detected_lang)
@@ -142,6 +175,46 @@ def generate_response(
             "follow_up": False,
             "urgency": False,
         }
+
+
+def _generate_with_gemini(user_message: str, context: str, lang: str, conversation: list) -> str:
+    """Make REST API call to Gemini to generate natural conversational text using context"""
+    language_map = {"hi": "Hindi", "en": "English", "ta": "Tamil", "bn": "Bengali", "mr": "Marathi", "te": "Telugu"}
+    lang_name = language_map.get(lang, "English")
+    
+    system_prompt = (
+        f"You are NyayaVoice, a helpful and empathetic legal aid assistant in India. "
+        f"Always answer clearly and directly in {lang_name}. Use simple, jargon-free everyday language. "
+        f"Use the following 'Legal Context' found from our database to inform your answer. "
+        f"Answer the user's exact question first. Do not give a generic category overview when the question is specific. "
+        f"If the context is incomplete, say what is known, what is uncertain, and ask one short follow-up question. "
+        f"If the context doesn't contain the exact answer, use your general knowledge of Indian Law, "
+        f"but advise the user to consult a lawyer. Do not hallucinate section numbers unless certain.\n"
+    )
+    
+    prompt = f"System: {system_prompt}\n\nLegal Context:\n{context}\n\n"
+    
+    # Add recent conversation history for context
+    for msg in conversation[-4:]:
+        role = "User" if msg.get("role") == "user" else "NyayaVoice"
+        prompt += f"{role}: {msg.get('text')}\n"
+        
+    prompt += f"User: {user_message}\nNyayaVoice:"
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.4}
+    }
+    
+    try:
+        resp = requests.post(url, json=payload, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception as e:
+        logger.error(f"Gemini generation failed: {e}")
+        return ""
 
 
 def store_turn(user_id, user_message, reply, intent):
@@ -181,6 +254,193 @@ def _format_legal_results(results: list, lang: str) -> str:
         footer = "\n\nWould you like to know more about any of these topics?"
 
     return header + "\n\n" + "\n\n".join(lines) + footer
+
+
+def _build_grounded_response(user_message: str, results: list, intent: str, lang: str) -> str:
+    top_results = results[:3]
+    primary_topic = TOPIC_LABELS.get(intent, TOPIC_LABELS.get(top_results[0]["category"], "legal issue"))
+
+    if lang == "hi":
+        intro = f"आपके सवाल के हिसाब से, {primary_topic} के लिए यह सबसे काम की जानकारी है:"
+        next_steps_label = "अगले कदम:"
+        follow_up = "अगर आप चाहें, तो मैं इसी विषय पर एक छोटा ड्राफ्ट या अगले कदम भी बता सकता हूँ।"
+    else:
+        intro = f"Based on your question, here is the most relevant information about {primary_topic}:"
+        next_steps_label = "Next steps:"
+        follow_up = "If you want, I can also turn this into a short step-by-step plan or draft."
+
+    key_points = _extract_key_points(top_results)
+    response_lines = [intro, ""]
+    response_lines.extend(f"- {point}" for point in key_points[:4])
+
+    next_steps = _suggest_next_steps(intent, top_results, lang)
+    if next_steps:
+        response_lines.extend(["", next_steps_label])
+        response_lines.extend(f"- {step}" for step in next_steps[:3])
+
+    specific_question = _detect_specific_question(user_message, lang)
+    if specific_question and lang != "hi":
+        response_lines.extend(["", f"In short: {specific_question}"])
+    elif specific_question and lang == "hi":
+        response_lines.extend(["", f"संक्षेप में: {specific_question}"])
+
+    response_lines.extend(["", follow_up])
+    return "\n".join(response_lines)
+
+
+def _extract_key_points(results: list) -> list:
+    seen = set()
+    points = []
+    for result in results:
+        sentences = re.split(r"(?<=[.!?])\s+", result["content"].strip())
+        for sentence in sentences:
+            cleaned = sentence.strip().replace("\n", " ")
+            if len(cleaned) < 25:
+                continue
+            key = cleaned.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            points.append(cleaned)
+    return points
+
+
+def _suggest_next_steps(intent: str, results: list, lang: str) -> list:
+    category = intent if intent != "general_legal_query" else results[0]["category"]
+    steps_en = {
+        "theft_complaint": [
+            "Note what was stolen, when it happened, and where it happened.",
+            "Go to the nearest police station and ask to file an FIR or Zero FIR.",
+            "Keep a free copy of the FIR and any proof like bills, IMEI number, or photos.",
+        ],
+        "theft": [
+            "Note what was stolen, when it happened, and where it happened.",
+            "Go to the nearest police station and ask to file an FIR or Zero FIR.",
+            "Keep a free copy of the FIR and any proof like bills, IMEI number, or photos.",
+        ],
+        "fir_process": [
+            "Prepare the basic facts: what happened, when, where, and who was involved.",
+            "Ask for a free FIR copy after registration.",
+            "If the police refuse, complain to the Superintendent of Police or seek court directions.",
+        ],
+        "domestic_violence": [
+            "If there is immediate danger, call 181 or 112 right away.",
+            "Save messages, photos, medical papers, or witness details.",
+            "You can approach the police, a Protection Officer, or an NGO for help.",
+        ],
+        "cyber_crime": [
+            "Save screenshots, transaction IDs, phone numbers, and links.",
+            "Report quickly at cybercrime.gov.in or call 1930.",
+            "If money was lost, also file an FIR or police complaint.",
+        ],
+        "consumer_rights": [
+            "Keep the bill, warranty, screenshots, and seller communication.",
+            "Ask the seller for refund or replacement in writing.",
+            "If unresolved, file a complaint on eDaakhil or before the District Consumer Forum.",
+        ],
+        "legal_aid": [
+            "Contact the District Legal Services Authority in your district.",
+            "Call NALSA helpline 15100 for free legal help.",
+            "Keep your ID and basic case papers ready when you call or visit.",
+        ],
+    }
+    steps_hi = {
+        "theft_complaint": [
+            "क्या चोरी हुआ, कब हुआ और कहाँ हुआ, यह लिख लें।",
+            "नजदीकी पुलिस स्टेशन में जाकर FIR या Zero FIR दर्ज कराने को कहें।",
+            "FIR की मुफ्त कॉपी और बिल, IMEI नंबर या फोटो जैसे सबूत संभालकर रखें।",
+        ],
+        "theft": [
+            "क्या चोरी हुआ, कब हुआ और कहाँ हुआ, यह लिख लें।",
+            "नजदीकी पुलिस स्टेशन में जाकर FIR या Zero FIR दर्ज कराने को कहें।",
+            "FIR की मुफ्त कॉपी और बिल, IMEI नंबर या फोटो जैसे सबूत संभालकर रखें।",
+        ],
+        "fir_process": [
+            "घटना के मुख्य तथ्य तैयार रखें: क्या हुआ, कब, कहाँ और कौन शामिल था।",
+            "FIR दर्ज होने के बाद उसकी मुफ्त कॉपी जरूर लें।",
+            "अगर पुलिस मना करे, तो एसपी को शिकायत करें या अदालत से आदेश मांगें।",
+        ],
+        "domestic_violence": [
+            "अगर तुरंत खतरा है, तो 181 या 112 पर अभी कॉल करें।",
+            "मैसेज, फोटो, मेडिकल पेपर या गवाह की जानकारी सुरक्षित रखें।",
+            "आप पुलिस, Protection Officer या NGO से मदद ले सकती हैं।",
+        ],
+        "cyber_crime": [
+            "स्क्रीनशॉट, ट्रांजैक्शन आईडी, फोन नंबर और लिंक सुरक्षित रखें।",
+            "जल्दी cybercrime.gov.in पर रिपोर्ट करें या 1930 पर कॉल करें।",
+            "अगर पैसे गए हैं, तो FIR या पुलिस शिकायत भी करें।",
+        ],
+        "consumer_rights": [
+            "बिल, वारंटी, स्क्रीनशॉट और विक्रेता से हुई बात सुरक्षित रखें।",
+            "रिफंड या रिप्लेसमेंट के लिए लिखित में मांग करें।",
+            "समाधान न मिले तो eDaakhil या जिला उपभोक्ता फोरम में शिकायत करें।",
+        ],
+        "legal_aid": [
+            "अपने जिले के DLSA से संपर्क करें।",
+            "मुफ्त कानूनी सहायता के लिए NALSA हेल्पलाइन 15100 पर कॉल करें।",
+            "फोन या विजिट से पहले अपनी पहचान और केस के कागज तैयार रखें।",
+        ],
+    }
+    mapping = steps_hi if lang == "hi" else steps_en
+    return mapping.get(category, [])
+
+
+def _detect_specific_question(user_message: str, lang: str = "en") -> str:
+    lower = user_message.lower()
+    if "how to file" in lower or ("file" in lower and "case" in lower):
+        return (
+            "आप पहले घटना के तथ्य साफ़ लिखें, फिर सही प्राधिकरण के पास शिकायत या FIR दर्ज करें और उसकी कॉपी रखें।"
+            if lang == "hi"
+            else "You usually start by writing the facts clearly, then file the complaint or FIR with the correct authority and keep a copy."
+        )
+    if "fir" in lower and ("how" in lower or "file" in lower):
+        return (
+            "आप नजदीकी पुलिस स्टेशन में FIR दर्ज करा सकते हैं, और कई मामलों में Zero FIR भी दर्ज हो सकती है।"
+            if lang == "hi"
+            else "You can file an FIR at the nearest police station, and in many cases even as a Zero FIR."
+        )
+    if "legal aid" in lower or "free lawyer" in lower:
+        return (
+            "मुफ्त कानूनी सहायता DLSA और NALSA हेल्पलाइन 15100 के माध्यम से मिल सकती है।"
+            if lang == "hi"
+            else "Free legal aid is available through DLSA and NALSA helpline 15100."
+        )
+    return ""
+
+
+def _clarifying_or_generic_response(user_message: str, intent: str, lang: str) -> str:
+    if _is_vague_question(user_message):
+        if lang == "hi":
+            topic = TOPIC_LABELS.get(intent, "कानूनी समस्या")
+            return (
+                f"मैं मदद कर सकता हूँ, लेकिन आपका सवाल अभी थोड़ा सामान्य है। "
+                f"कृपया एक लाइन में बताइए कि {topic} में आपको क्या जानना है: "
+                f"क्या करना है, कहाँ शिकायत करनी है, कौन से कागज़ चाहिए, या आगे के कदम क्या हैं?"
+            )
+        topic = TOPIC_LABELS.get(intent, "legal issue")
+        return (
+            f"I can help, but your question is still a bit broad. "
+            f"Please tell me in one line what you want to know about {topic}: "
+            f"what to do, where to file, what documents are needed, or what the next step is."
+        )
+    return _generic_guidance(lang)
+
+
+def _is_vague_question(user_message: str) -> bool:
+    tokens = re.findall(r"\w+", user_message.lower())
+    if len(tokens) <= 4:
+        return True
+    vague_phrases = {
+        "help",
+        "legal help",
+        "need help",
+        "how to file case",
+        "case",
+        "problem",
+        "issue",
+    }
+    compact = " ".join(tokens[:4])
+    return user_message.lower().strip() in vague_phrases or compact in vague_phrases
 
 
 def _generic_guidance(lang: str) -> str:
