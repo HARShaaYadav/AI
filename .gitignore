@@ -4,3 +4,4 @@ venv/
 .env
 server.log
 server.err.log
+generated_docs/
