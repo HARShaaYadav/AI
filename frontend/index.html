@@ -17,10 +17,11 @@
       z-index: 10000;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      height: 100%;
       background: linear-gradient(145deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 70%, #164e63 100%);
       color: #f8fafc;
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .landing-lang {
@@ -1213,7 +1214,8 @@
           <div class="accord-body" data-i18n="r_theft_b">If someone steals your belongings, you have the right to file a
             <strong>First Information Report (FIR)</strong> at the nearest police station — completely free. Police must
             register under <strong>Section 379 IPC</strong>. You can also file a <strong>Zero FIR</strong> at any
-            station.</div>
+            station.
+          </div>
         </details>
         <details class="accord-item">
           <summary data-i18n="r_dv">Domestic Violence</summary>
