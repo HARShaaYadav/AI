@@ -18,19 +18,8 @@
   let vapiPublicKey = '';
 
   async function initVapi() {
-    try {
-      const res = await fetch(API_BASE + '/api/config');
-      if (res.ok) {
-        const cfg = await res.json();
-        vapiPublicKey = cfg.vapi_public_key || '';
-      } else {
-        // Backend not on Vercel — use public key directly (safe: browser-side public key)
-        vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
-      }
-    } catch (e) {
-      // Network error or backend offline — use fallback
-      vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
-    }
+    // Use public key directly (Vapi public key is safe to embed in frontend)
+    vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
     if (vapiPublicKey && window.Vapi) {
       vapiInstance = new window.Vapi(vapiPublicKey);
       setupVapiEvents();
