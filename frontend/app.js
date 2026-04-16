@@ -20,6 +20,7 @@
   let vapiCallActive = false;
   let vapiSessionMode = null;
   let pendingTypedMessages = [];
+  let recentSpokenAssistantTexts = [];
 
   async function initVapi() {
     // Use public key directly (Vapi public key is safe to embed in frontend)
@@ -51,15 +52,22 @@
         if (msg.role === 'user') {
           if (consumePendingTypedMessage(msg.transcript)) return;
           showPage('chat');
-          addMessage(msg.transcript, true, 'text');
-          conversationHistory.push({ role: 'user', text: msg.transcript });
+          if (!isDuplicateConversationTurn('user', msg.transcript)) {
+            addMessage(msg.transcript, true, 'text');
+            conversationHistory.push({ role: 'user', text: msg.transcript });
+          }
         } else if (msg.role === 'assistant') {
           removeTypingIndicator();
-          addMessage(msg.transcript, false, 'markdown');
-          conversationHistory.push({ role: 'assistant', text: msg.transcript });
-          messageCount++;
-          localStorage.setItem('nyayavoice_msg_count', messageCount);
-          updateStats();
+          if (!isDuplicateConversationTurn('assistant', msg.transcript)) {
+            addMessage(msg.transcript, false, 'markdown');
+            conversationHistory.push({ role: 'assistant', text: msg.transcript });
+            messageCount++;
+            localStorage.setItem('nyayavoice_msg_count', messageCount);
+            updateStats();
+          }
+          if (vapiSessionMode === 'chat') {
+            speakAssistantReplyWithVapi(msg.transcript);
+          }
         }
       }
     });
@@ -239,6 +247,12 @@
     if (el) el.remove();
   }
 
+  function isDuplicateConversationTurn(role, text) {
+    const normalized = normalizeText(text);
+    const lastMessage = conversationHistory[conversationHistory.length - 1];
+    return !!lastMessage && lastMessage.role === role && normalizeText(lastMessage.text) === normalized;
+  }
+
   function normalizeText(text) {
     return String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
   }
@@ -255,6 +269,31 @@
       return true;
     }
     return false;
+  }
+
+  function hasRecentlySpokenAssistantText(text) {
+    const normalized = normalizeText(text);
+    const now = Date.now();
+    recentSpokenAssistantTexts = recentSpokenAssistantTexts.filter(item => now - item.ts < 15000);
+    return recentSpokenAssistantTexts.some(item => item.text === normalized);
+  }
+
+  function rememberSpokenAssistantText(text) {
+    recentSpokenAssistantTexts.push({ text: normalizeText(text), ts: Date.now() });
+  }
+
+  function speakAssistantReplyWithVapi(text) {
+    if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text)) return;
+    rememberSpokenAssistantText(text);
+    try {
+      vapiInstance.send({
+        type: 'say',
+        content: text,
+        endCallAfterSpoken: false,
+      });
+    } catch (err) {
+      console.error('Vapi say failed:', err);
+    }
   }
 
   async function ensureVapiSession(mode = 'chat') {
