@@ -16,9 +16,17 @@
         {
             "src": "frontend/i18n.js",
             "use": "@vercel/static"
+        },
+        {
+            "src": "frontend/api/config.json",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
+        {
+            "src": "/api/config",
+            "dest": "/frontend/api/config.json"
+        },
         {
             "src": "/styles.css",
             "dest": "/frontend/styles.css"
