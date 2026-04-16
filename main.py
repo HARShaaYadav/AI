@@ -248,6 +248,18 @@ if os.path.isdir(FRONTEND_DIR):
     async def serve_frontend():
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
+    @app.get("/styles.css")
+    async def serve_css():
+        return FileResponse(os.path.join(FRONTEND_DIR, "styles.css"))
+
+    @app.get("/app.js")
+    async def serve_app_js():
+        return FileResponse(os.path.join(FRONTEND_DIR, "app.js"))
+
+    @app.get("/i18n.js")
+    async def serve_i18n_js():
+        return FileResponse(os.path.join(FRONTEND_DIR, "i18n.js"))
+
     # NOTE: Do NOT add a catch-all /{path:path} route here.
     # That would intercept /static/* requests before StaticFiles mount can serve them,
     # causing 404 errors in production for CSS/JS files.

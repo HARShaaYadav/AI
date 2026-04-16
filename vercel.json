@@ -2,17 +2,37 @@
     "version": 2,
     "builds": [
         {
-            "src": "frontend/**",
+            "src": "frontend/index.html",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "frontend/styles.css",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "frontend/app.js",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "frontend/i18n.js",
             "use": "@vercel/static"
         }
     ],
     "routes": [
         {
-            "src": "/static/(.*)",
-            "dest": "/frontend/$1"
+            "src": "/styles.css",
+            "dest": "/frontend/styles.css"
         },
         {
-            "src": "/",
+            "src": "/app.js",
+            "dest": "/frontend/app.js"
+        },
+        {
+            "src": "/i18n.js",
+            "dest": "/frontend/i18n.js"
+        },
+        {
+            "src": "/(.*)",
             "dest": "/frontend/index.html"
         }
     ]
