@@ -142,14 +142,6 @@ def generate_response(
             "follow_up": False,
             "urgency": False,
         }
-    except Exception as e:
-        return {
-            "response": f"An error occurred: {str(e)}",
-            "intent": "error",
-            "language": language_code,
-            "follow_up": False,
-            "urgency": False,
-        }
 
 
 def store_turn(user_id, user_message, reply, intent):
