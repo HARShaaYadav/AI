@@ -26,7 +26,6 @@ A voice-first, multilingual AI legal aid assistant for people who face barriers 
 ### Step 1: Install dependencies
 
 ```bash
-cd nyayavoice
 pip install -r requirements.txt
 ```
 
@@ -57,7 +56,6 @@ BACKEND_URL=http://localhost:8000
 ### Step 3: Start the server
 
 ```bash
-cd nyayavoice
 uvicorn backend.main:app --reload --port 8000
 ```
 
