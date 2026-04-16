@@ -40,7 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
+# Mount static files — accessible at /static/styles.css, /static/app.js, etc.
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 # Mount generated docs at /generated-docs (avoid conflict with FastAPI's /docs Swagger UI)
 # Only mount if the directory has files to prevent StaticFiles RuntimeError on empty dir
@@ -246,17 +246,11 @@ async def vapi_webhook(request: Request):
 if os.path.isdir(FRONTEND_DIR):
     @app.get("/")
     async def serve_frontend():
-        print("Frontend served")
-        print("Frontend requested")
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-    @app.get("/{path:path}")
-    async def serve_spa(path: str):
-        """Catch-all route for SPA — serve index.html for client-side routing.
-        Note: /static/* and /docs/* are handled by the StaticFiles mounts above;
-        this catch-all only fires for paths NOT matched by those mounts.
-        """
-        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+    # NOTE: Do NOT add a catch-all /{path:path} route here.
+    # That would intercept /static/* requests before StaticFiles mount can serve them,
+    # causing 404 errors in production for CSS/JS files.
 
 
 def _get_greeting(lang: str) -> str:
