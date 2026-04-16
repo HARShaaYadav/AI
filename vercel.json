@@ -1,0 +1,14 @@
+{
+    "version": 2,
+    "outputDirectory": "frontend",
+    "routes": [
+        {
+            "src": "/static/(.*)",
+            "dest": "/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
+        }
+    ]
+}
