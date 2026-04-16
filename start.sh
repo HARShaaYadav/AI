@@ -65,8 +65,5 @@ exec uvicorn main:app \
     --port ${PORT:-8080} \
     --workers 1 \
     --log-level info \
-    --access-log \
-    --reload \
-    --reload-dir . \
-    --reload-dir backend \
-    --reload-dir frontend
+    --access-log
+

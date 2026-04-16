@@ -28,8 +28,8 @@ app = FastAPI(
     title="NyayaVoice API",
     description="Voice-first multilingual legal aid assistant — powered by Vapi + Qdrant",
     version="2.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/api-docs",
+    redoc_url="/api-redoc"
 )
 
 app.add_middleware(
@@ -42,7 +42,10 @@ app.add_middleware(
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-app.mount("/docs", StaticFiles(directory=DOCS_DIR), name="docs")
+# Mount generated docs at /generated-docs (avoid conflict with FastAPI's /docs Swagger UI)
+# Only mount if the directory has files to prevent StaticFiles RuntimeError on empty dir
+if os.listdir(DOCS_DIR):
+    app.mount("/generated-docs", StaticFiles(directory=DOCS_DIR), name="generated-docs")
 
 # Include routers
 app.include_router(query_router, prefix="/api", tags=["Query"])
