@@ -69,7 +69,7 @@
             updateStats();
           }
           if (vapiSessionMode === 'chat') {
-            speakAssistantReplyWithVapi(msg.transcript);
+            speakAssistantReplyInBrowser(msg.transcript);
           }
         }
       }
@@ -316,7 +316,13 @@
     if (!('speechSynthesis' in window) || !text) return;
 
     try {
-      const utterance = new SpeechSynthesisUtterance(text);
+      const cleanedText = String(text)
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/[#*_`>-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!cleanedText) return;
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
       utterance.lang = getSpeechLang();
       utterance.rate = 1;
       window.speechSynthesis.cancel();
@@ -391,6 +397,7 @@
       } else {
         addMessage(result.response, false, 'markdown');
       }
+      speakAssistantReplyInBrowser(result.response);
 
       messageCount++;
       localStorage.setItem('nyayavoice_msg_count', messageCount);
@@ -425,6 +432,7 @@
     if (/chori|theft|stolen|चोरी|phone|फ़ोन|snatch/.test(lower)) reply = r.theft;
     else if (/violen|hinsa|हिंसा|domestic|abuse|beat|पीट/.test(lower)) reply = r.violence;
     addMessage(reply, false, 'html');
+    speakAssistantReplyInBrowser(reply);
   }
 
   sendBtn.addEventListener('click', () => {
