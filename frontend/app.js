@@ -20,14 +20,20 @@
   async function initVapi() {
     try {
       const res = await fetch(API_BASE + '/api/config');
-      const cfg = await res.json();
-      vapiPublicKey = cfg.vapi_public_key || '';
-      if (vapiPublicKey && window.Vapi) {
-        vapiInstance = new window.Vapi(vapiPublicKey);
-        setupVapiEvents();
+      if (res.ok) {
+        const cfg = await res.json();
+        vapiPublicKey = cfg.vapi_public_key || '';
+      } else {
+        // Backend not on Vercel — use public key directly (safe: browser-side public key)
+        vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
       }
     } catch (e) {
-      console.warn('Vapi init skipped:', e.message);
+      // Network error or backend offline — use fallback
+      vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
+    }
+    if (vapiPublicKey && window.Vapi) {
+      vapiInstance = new window.Vapi(vapiPublicKey);
+      setupVapiEvents();
     }
   }
 
@@ -64,19 +70,19 @@
   }
 
   /* ── DOM refs ──────────────────────────────────────────── */
-  const sidebar       = document.getElementById('sidebar');
-  const mainContent   = document.getElementById('mainContent');
-  const mobileHeader  = document.getElementById('mobileHeader');
-  const hamburgerBtn  = document.getElementById('hamburgerBtn');
-  const langSwitch    = document.getElementById('langSwitch');
-  const langMobile    = document.getElementById('langSwitchMobile');
-  const settingsLang  = document.getElementById('settingsLang');
-  const themeToggle   = document.getElementById('themeToggle');
-  const micBtn        = document.getElementById('micBtn');
-  const micStatus     = document.getElementById('micStatus');
-  const chatInput     = document.getElementById('chatInput');
-  const sendBtn       = document.getElementById('sendBtn');
-  const chatMessages  = document.getElementById('chatMessages');
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.getElementById('mainContent');
+  const mobileHeader = document.getElementById('mobileHeader');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const langSwitch = document.getElementById('langSwitch');
+  const langMobile = document.getElementById('langSwitchMobile');
+  const settingsLang = document.getElementById('settingsLang');
+  const themeToggle = document.getElementById('themeToggle');
+  const micBtn = document.getElementById('micBtn');
+  const micStatus = document.getElementById('micStatus');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const chatMessages = document.getElementById('chatMessages');
   const offlineBanner = document.getElementById('offlineBanner');
 
   let overlay = document.createElement('div');
@@ -85,7 +91,7 @@
 
   /* ── NAVIGATION ────────────────────────────────────────── */
   const navBtns = document.querySelectorAll('.nav-btn[data-page]');
-  const pages   = document.querySelectorAll('.page');
+  const pages = document.querySelectorAll('.page');
 
   function showPage(pageId) {
     pages.forEach(p => p.classList.remove('active'));
@@ -105,7 +111,7 @@
   });
 
   /* ── SIDEBAR MOBILE ────────────────────────────────────── */
-  function openSidebar()  { sidebar.classList.add('open');    overlay.classList.add('active'); }
+  function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('active'); }
   function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
   hamburgerBtn.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
   overlay.addEventListener('click', closeSidebar);
@@ -556,10 +562,10 @@
   /* ── FIR Generate — calls backend /generate-document ───── */
   document.getElementById('firGenerateBtn').addEventListener('click', async () => {
     const incident = document.getElementById('firIncident').value;
-    const date     = document.getElementById('firDate').value;
+    const date = document.getElementById('firDate').value;
     const location = document.getElementById('firLocation').value;
-    const suspect  = document.getElementById('firSuspect').value;
-    const witness  = document.getElementById('firWitness').value;
+    const suspect = document.getElementById('firSuspect').value;
+    const witness = document.getElementById('firWitness').value;
 
     const generateBtn = document.getElementById('firGenerateBtn');
     generateBtn.disabled = true;
@@ -605,7 +611,7 @@
   });
 
   document.getElementById('firNewBtn').addEventListener('click', () => {
-    ['firIncident','firDate','firLocation','firSuspect','firWitness'].forEach(id => document.getElementById(id).value = '');
+    ['firIncident', 'firDate', 'firLocation', 'firSuspect', 'firWitness'].forEach(id => document.getElementById(id).value = '');
     showFirStep(1);
   });
 
@@ -636,9 +642,9 @@
   });
 
   /* ── FILE UPLOAD (Case Predictor) ──────────────────────── */
-  const uploadZone  = document.getElementById('uploadZone');
-  const fileInput   = document.getElementById('fileUploadInput');
-  const filesList   = document.getElementById('uploadedFilesList');
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileUploadInput');
+  const filesList = document.getElementById('uploadedFilesList');
   let uploadedFiles = [];
 
   uploadZone.addEventListener('click', () => fileInput.click());
@@ -664,10 +670,10 @@
 
   function getFileIcon(name) {
     const ext = name.split('.').pop().toLowerCase();
-    if (['mp4','mov','avi','mkv','webm'].includes(ext)) return '&#127909;';
-    if (['jpg','jpeg','png','gif','webp'].includes(ext)) return '&#128247;';
+    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return '&#127909;';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return '&#128247;';
     if (['pdf'].includes(ext)) return '&#128196;';
-    if (['doc','docx'].includes(ext)) return '&#128209;';
+    if (['doc', 'docx'].includes(ext)) return '&#128209;';
     return '&#128206;';
   }
 
@@ -703,13 +709,13 @@
 
   /* ── CASE PREDICTOR ────────────────────────────────────── */
   const CASE_DATA = {
-    theft:    { success: 68, time: '3-6', cost: '₹2-5K',  similar: 24, won: 55, settled: 20, lost: 25, laws: ['IPC 378','IPC 379','IPC 411','CrPC 154'] },
-    dv:       { success: 75, time: '6-12', cost: '₹5-15K', similar: 32, won: 60, settled: 25, lost: 15, laws: ['DV Act 2005','IPC 498A','CrPC 125','HMA 1955'] },
-    wage:     { success: 80, time: '3-9', cost: '₹1-3K',  similar: 28, won: 65, settled: 25, lost: 10, laws: ['Payment of Wages Act','Min. Wages Act','ID Act 1947'] },
-    harass:   { success: 70, time: '6-18', cost: '₹10-30K',similar: 18, won: 50, settled: 30, lost: 20, laws: ['POSH Act 2013','IPC 354A','IPC 509'] },
-    land:     { success: 55, time: '12-36', cost: '₹20-80K',similar: 20, won: 45, settled: 30, lost: 25, laws: ['TPA 1882','Registration Act','Specific Relief Act'] },
-    cyber:    { success: 62, time: '6-12', cost: '₹5-15K', similar: 15, won: 50, settled: 25, lost: 25, laws: ['IT Act 2000','IT Amdt. 2008','IPC 420','IPC 468'] },
-    consumer: { success: 78, time: '3-12', cost: '₹1-5K',  similar: 35, won: 65, settled: 20, lost: 15, laws: ['CPA 2019','Legal Metrology Act','FSSAI Act'] }
+    theft: { success: 68, time: '3-6', cost: '₹2-5K', similar: 24, won: 55, settled: 20, lost: 25, laws: ['IPC 378', 'IPC 379', 'IPC 411', 'CrPC 154'] },
+    dv: { success: 75, time: '6-12', cost: '₹5-15K', similar: 32, won: 60, settled: 25, lost: 15, laws: ['DV Act 2005', 'IPC 498A', 'CrPC 125', 'HMA 1955'] },
+    wage: { success: 80, time: '3-9', cost: '₹1-3K', similar: 28, won: 65, settled: 25, lost: 10, laws: ['Payment of Wages Act', 'Min. Wages Act', 'ID Act 1947'] },
+    harass: { success: 70, time: '6-18', cost: '₹10-30K', similar: 18, won: 50, settled: 30, lost: 20, laws: ['POSH Act 2013', 'IPC 354A', 'IPC 509'] },
+    land: { success: 55, time: '12-36', cost: '₹20-80K', similar: 20, won: 45, settled: 30, lost: 25, laws: ['TPA 1882', 'Registration Act', 'Specific Relief Act'] },
+    cyber: { success: 62, time: '6-12', cost: '₹5-15K', similar: 15, won: 50, settled: 25, lost: 25, laws: ['IT Act 2000', 'IT Amdt. 2008', 'IPC 420', 'IPC 468'] },
+    consumer: { success: 78, time: '3-12', cost: '₹1-5K', similar: 35, won: 65, settled: 20, lost: 15, laws: ['CPA 2019', 'Legal Metrology Act', 'FSSAI Act'] }
   };
 
   document.getElementById('predictBtn').addEventListener('click', () => {
@@ -737,8 +743,8 @@
     lawsDiv.innerHTML = data.laws.map(l => `<span class="law-tag">${l}</span>`).join('');
 
     const steps = lang === 'hi'
-      ? ['सभी साक्ष्य और दस्तावेज़ एकत्र करें','निकटतम थाने में एफ़आईआर दर्ज करें या सम्बन्धित प्राधिकरण में शिकायत दर्ज करें','निःशुल्क कानूनी सहायता हेतु नालसा हेल्पलाइन 15100 पर सम्पर्क करें','किसी योग्य वकील से परामर्श करें']
-      : ['Gather all evidence and documents','File FIR at nearest police station or lodge complaint with relevant authority','Contact NALSA Helpline 15100 for free legal aid','Consult a qualified lawyer for formal advice'];
+      ? ['सभी साक्ष्य और दस्तावेज़ एकत्र करें', 'निकटतम थाने में एफ़आईआर दर्ज करें या सम्बन्धित प्राधिकरण में शिकायत दर्ज करें', 'निःशुल्क कानूनी सहायता हेतु नालसा हेल्पलाइन 15100 पर सम्पर्क करें', 'किसी योग्य वकील से परामर्श करें']
+      : ['Gather all evidence and documents', 'File FIR at nearest police station or lodge complaint with relevant authority', 'Contact NALSA Helpline 15100 for free legal aid', 'Consult a qualified lawyer for formal advice'];
 
     document.getElementById('predActionsList').innerHTML = steps.map(s => `<li>${s}</li>`).join('');
 
@@ -748,20 +754,20 @@
 
   /* ── RISK SCORE ────────────────────────────────────────── */
   const RISK_DATA = {
-    theft:    { base: 35, laws: ['IPC 378/379','CrPC 154','IPC 166A'] },
-    dv:       { base: 55, laws: ['DV Act 2005','IPC 498A','CrPC 125'] },
-    wage:     { base: 30, laws: ['Payment of Wages Act','Min. Wages Act'] },
-    harass:   { base: 50, laws: ['POSH Act 2013','IPC 354A'] },
-    land:     { base: 60, laws: ['TPA 1882','Registration Act','Limitation Act'] },
-    cyber:    { base: 45, laws: ['IT Act 2000','IPC 420','IPC 468'] },
-    consumer: { base: 25, laws: ['CPA 2019','Legal Metrology Act'] }
+    theft: { base: 35, laws: ['IPC 378/379', 'CrPC 154', 'IPC 166A'] },
+    dv: { base: 55, laws: ['DV Act 2005', 'IPC 498A', 'CrPC 125'] },
+    wage: { base: 30, laws: ['Payment of Wages Act', 'Min. Wages Act'] },
+    harass: { base: 50, laws: ['POSH Act 2013', 'IPC 354A'] },
+    land: { base: 60, laws: ['TPA 1882', 'Registration Act', 'Limitation Act'] },
+    cyber: { base: 45, laws: ['IT Act 2000', 'IPC 420', 'IPC 468'] },
+    consumer: { base: 25, laws: ['CPA 2019', 'Legal Metrology Act'] }
   };
 
   document.getElementById('riskCalcBtn').addEventListener('click', () => {
     const category = document.getElementById('riskCategory').value;
     if (!document.getElementById('riskSituation').value.trim()) { alert(t('alertSituation')); return; }
 
-    const rd = RISK_DATA[category] || { base: 40, laws: ['IPC','CrPC'] };
+    const rd = RISK_DATA[category] || { base: 40, laws: ['IPC', 'CrPC'] };
     const factors = document.querySelectorAll('input[name="rf"]:checked');
     let score = rd.base + (factors.length * 10);
     score = Math.min(score, 95);
@@ -792,25 +798,25 @@
 
     const actions = lang === 'hi'
       ? [
-          { title: 'साक्ष्य सुरक्षित करें', desc: 'सभी दस्तावेज़, फ़ोटो, वीडियो, स्क्रीनशॉट और गवाहों के विवरण एकत्र करें।' },
-          { title: 'शिकायत दर्ज करें', desc: 'निकटतम थाने में एफ़आईआर दर्ज करें या सम्बन्धित प्राधिकरण में शिकायत करें।' },
-          { title: 'कानूनी सहायता लें', desc: 'निःशुल्क कानूनी सहायता हेतु नालसा हेल्पलाइन 15100 या जिला विधिक सेवा प्राधिकरण से सम्पर्क करें।' },
-          { title: 'समय सीमा का ध्यान रखें', desc: 'प्रत्येक कानूनी कार्यवाही की एक परिसीमा अवधि होती है। जितना जल्दी हो सके कार्यवाही करें।' }
-        ]
+        { title: 'साक्ष्य सुरक्षित करें', desc: 'सभी दस्तावेज़, फ़ोटो, वीडियो, स्क्रीनशॉट और गवाहों के विवरण एकत्र करें।' },
+        { title: 'शिकायत दर्ज करें', desc: 'निकटतम थाने में एफ़आईआर दर्ज करें या सम्बन्धित प्राधिकरण में शिकायत करें।' },
+        { title: 'कानूनी सहायता लें', desc: 'निःशुल्क कानूनी सहायता हेतु नालसा हेल्पलाइन 15100 या जिला विधिक सेवा प्राधिकरण से सम्पर्क करें।' },
+        { title: 'समय सीमा का ध्यान रखें', desc: 'प्रत्येक कानूनी कार्यवाही की एक परिसीमा अवधि होती है। जितना जल्दी हो सके कार्यवाही करें।' }
+      ]
       : [
-          { title: 'Secure Your Evidence', desc: 'Gather all documents, photos, videos, screenshots, and witness details.' },
-          { title: 'File Your Complaint', desc: 'File FIR at nearest police station or lodge complaint with the relevant authority.' },
-          { title: 'Get Legal Aid', desc: 'Contact NALSA Helpline 15100 or DLSA for free legal assistance if you cannot afford a lawyer.' },
-          { title: 'Mind the Deadline', desc: 'Every legal action has a limitation period. Act as soon as possible to preserve your rights.' }
-        ];
+        { title: 'Secure Your Evidence', desc: 'Gather all documents, photos, videos, screenshots, and witness details.' },
+        { title: 'File Your Complaint', desc: 'File FIR at nearest police station or lodge complaint with the relevant authority.' },
+        { title: 'Get Legal Aid', desc: 'Contact NALSA Helpline 15100 or DLSA for free legal assistance if you cannot afford a lawyer.' },
+        { title: 'Mind the Deadline', desc: 'Every legal action has a limitation period. Act as soon as possible to preserve your rights.' }
+      ];
 
     document.getElementById('riskActionsList').innerHTML = actions.map((a, i) =>
       `<li class="action-step"><span class="action-step-num">${i + 1}</span><div class="action-step-text"><strong>${a.title}</strong>${a.desc}</div></li>`
     ).join('');
 
     const phases = lang === 'hi'
-      ? [['शिकायत','1-2 सप्ताह'],['जाँच','1-3 माह'],['कानूनी कार्यवाही','3-12 माह'],['निर्णय','1-6 माह']]
-      : [['File Complaint','1-2 weeks'],['Investigation','1-3 months'],['Legal Proceedings','3-12 months'],['Resolution','1-6 months']];
+      ? [['शिकायत', '1-2 सप्ताह'], ['जाँच', '1-3 माह'], ['कानूनी कार्यवाही', '3-12 माह'], ['निर्णय', '1-6 माह']]
+      : [['File Complaint', '1-2 weeks'], ['Investigation', '1-3 months'], ['Legal Proceedings', '3-12 months'], ['Resolution', '1-6 months']];
 
     document.getElementById('riskTimelineBar').innerHTML = phases.map((p, i) =>
       `<div class="timeline-phase ${i === 0 ? 'tl-active' : 'tl-pending'}"><div class="timeline-phase-label">${p[0]}</div><div class="timeline-phase-dur">${p[1]}</div></div>`
@@ -828,7 +834,7 @@
     if (generatedDocs.length === 0) {
       docsList.innerHTML = `<div style="text-align:center;padding:2rem;color:#64748b;">
         ${getLang() === 'hi' ? 'अभी तक कोई दस्तावेज़ नहीं बना। एफ़आईआर विज़ार्ड या चैट से दस्तावेज़ बनाएँ।' :
-        'No documents generated yet. Use the FIR Wizard or Chat to generate documents.'}
+          'No documents generated yet. Use the FIR Wizard or Chat to generate documents.'}
       </div>`;
       return;
     }
@@ -864,7 +870,7 @@
   /* ── CLEAR DATA ────────────────────────────────────────── */
   document.getElementById('clearDataBtn').addEventListener('click', () => {
     const msg = getLang() === 'hi' ? 'क्या आप वाकई सारा डेटा मिटाना चाहते हैं?' : 'Are you sure you want to clear all data?';
-    if (confirm(msg)) { try { localStorage.clear(); } catch (_) {} location.reload(); }
+    if (confirm(msg)) { try { localStorage.clear(); } catch (_) { } location.reload(); }
   });
 
   /* ── OFFLINE DETECTION ─────────────────────────────────── */
@@ -874,25 +880,25 @@
   updateOnline();
 
   /* ── LANDING, AUTH, DEMO TOUR ─────────────────────────── */
-  const landingScreen   = document.getElementById('landingScreen');
-  const getStartedBtn   = document.getElementById('getStartedBtn');
-  const liveDemoBtn     = document.getElementById('liveDemoBtn');
+  const landingScreen = document.getElementById('landingScreen');
+  const getStartedBtn = document.getElementById('getStartedBtn');
+  const liveDemoBtn = document.getElementById('liveDemoBtn');
   const landingLangToggle = document.getElementById('landingLangToggle');
-  const authModal       = document.getElementById('authModal');
-  const authCloseBtn    = document.getElementById('authCloseBtn');
-  const authLoginTab    = document.getElementById('authLoginTab');
-  const authSignupTab   = document.getElementById('authSignupTab');
-  const authLoginForm   = document.getElementById('authLoginForm');
-  const authSignupForm  = document.getElementById('authSignupForm');
-  const authLoginBtn    = document.getElementById('authLoginBtn');
-  const authSignupBtn   = document.getElementById('authSignupBtn');
+  const authModal = document.getElementById('authModal');
+  const authCloseBtn = document.getElementById('authCloseBtn');
+  const authLoginTab = document.getElementById('authLoginTab');
+  const authSignupTab = document.getElementById('authSignupTab');
+  const authLoginForm = document.getElementById('authLoginForm');
+  const authSignupForm = document.getElementById('authSignupForm');
+  const authLoginBtn = document.getElementById('authLoginBtn');
+  const authSignupBtn = document.getElementById('authSignupBtn');
   const userNameDisplay = document.getElementById('userNameDisplay');
-  const demoTour        = document.getElementById('demoTour');
+  const demoTour = document.getElementById('demoTour');
   const demoTourStepIndicator = document.getElementById('demoTourStepIndicator');
-  const demoTourNext    = document.getElementById('demoTourNext');
-  const demoTourSkip    = document.getElementById('demoTourSkip');
-  const demoTourFinish  = document.getElementById('demoTourFinish');
-  const demoStepPanels  = document.querySelectorAll('.demo-step-panel');
+  const demoTourNext = document.getElementById('demoTourNext');
+  const demoTourSkip = document.getElementById('demoTourSkip');
+  const demoTourFinish = document.getElementById('demoTourFinish');
+  const demoStepPanels = document.querySelectorAll('.demo-step-panel');
 
   function enterMainApp() {
     if (landingScreen) landingScreen.style.display = 'none';
@@ -1022,7 +1028,7 @@
   });
 
   document.querySelectorAll('.btn-primary, .btn-outline, .send-btn, .landing-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
+    btn.addEventListener('click', function (e) {
       const ripple = document.createElement('span');
       ripple.className = 'btn-ripple';
       const rect = this.getBoundingClientRect();
