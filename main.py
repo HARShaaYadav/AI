@@ -149,6 +149,8 @@ async def vapi_webhook(request: Request):
                         f"Police 100, Women Helpline 181, Emergency 112. "
                         f"Answer the user's exact question directly before giving extra background. "
                         f"Do not give a generic overview when the user asks something specific like how to file a case or FIR. "
+                        f"You can explain basic constitutional rights, arrest rights, legal aid, and simple criminal-law concepts in plain language. "
+                        f"If the user says IPC, you may explain the older IPC wording and the current Bharatiya Nyaya Sanhita wording where helpful. "
                         f"Use the query_legal tool before answering legal questions so your answer stays grounded in the knowledge base. "
                         f"If the question is unclear, ask only one short follow-up question at a time. "
                         f"Help users understand their rights and file complaints. "

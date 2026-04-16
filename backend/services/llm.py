@@ -29,6 +29,8 @@ TOPIC_LABELS = {
     "legal_aid": "free legal aid",
     "rti": "RTI",
     "child_rights": "child rights",
+    "constitutional_rights": "constitutional rights",
+    "criminal_law_basics": "criminal law basics",
     "general_legal_query": "legal issue",
 }
 
@@ -68,6 +70,14 @@ INTENT_FALLBACK_QUERIES = {
     "child_rights": [
         "child helpline 1098 POCSO child labour complaint India",
     ],
+    "constitutional_rights": [
+        "Constitution of India article 14 19 21 22 32 39A basic rights",
+        "fundamental rights equality liberty arrest lawyer legal aid India",
+    ],
+    "criminal_law_basics": [
+        "Bharatiya Nyaya Sanhita 2023 basic criminal law theft robbery extortion assault",
+        "IPC and BNS difference theft robbery assault self defence India",
+    ],
 }
 
 INTENT_PATTERNS: Dict[str, str] = {
@@ -84,6 +94,11 @@ INTENT_PATTERNS: Dict[str, str] = {
     "child_rights": r"child|बच्च|pocso|juvenile|1098|minor",
     "emergency": r"emergency|help me|bachao|बचाओ|danger|khatra|खतरा|jaan|kill|मार",
 }
+
+INTENT_PATTERNS.update({
+    "constitutional_rights": r"constitution|fundamental right|article 14|article 19|article 21|article 22|article 32|article 39a|equality before law|personal liberty|arrest rights|constitutional right",
+    "criminal_law_basics": r"\bipc\b|\bbns\b|bharatiya nyaya sanhita|criminal law|robbery|extortion|wrongful restraint|wrongful confinement|self defence|private defence|assault|criminal force",
+})
 
 EMERGENCY_RESPONSE: Dict[str, str] = {
     "en": (
@@ -229,6 +244,8 @@ def _generate_with_gemini(user_message: str, context: str, lang: str, conversati
         f"You are NyayaVoice, a helpful and empathetic legal aid assistant in India. "
         f"Always answer clearly and directly in {lang_name}. Use simple, jargon-free everyday language. "
         f"Use the following 'Legal Context' found from our database to inform your answer. "
+        f"You can explain basic constitutional rights, arrest rights, legal aid, and criminal law in plain language. "
+        f"If the user refers to IPC, you may explain the older IPC wording and the current Bharatiya Nyaya Sanhita wording where useful. "
         f"Answer the user's exact question first. Do not give a generic category overview when the question is specific. "
         f"If the context is incomplete, say what is known, what is uncertain, and ask one short follow-up question. "
         f"If the context doesn't contain the exact answer, use your general knowledge of Indian Law, "
@@ -371,6 +388,8 @@ def _filter_results_for_intent(results: list, intent: str) -> list:
         "legal_aid": {"legal_aid"},
         "rti": {"rti"},
         "child_rights": {"child_rights"},
+        "constitutional_rights": {"constitutional_rights", "legal_aid"},
+        "criminal_law_basics": {"criminal_law_basics", "fir_process", "theft"},
     }
     allowed = intent_categories.get(intent, set())
     filtered = [r for r in results if r.get("category") in allowed]
@@ -539,6 +558,10 @@ def _intent_guidance(intent: str, user_message: str, lang: str) -> str:
         return _consumer_guidance(lang)
     if intent == "legal_aid":
         return _legal_aid_guidance(lang)
+    if intent == "constitutional_rights":
+        return _constitutional_rights_guidance(lang)
+    if intent == "criminal_law_basics":
+        return _criminal_law_basics_guidance(lang)
     return ""
 
 
@@ -623,6 +646,40 @@ def _legal_aid_guidance(lang: str) -> str:
         "- Contact the District Legal Services Authority in your district.\n"
         "- Call NALSA helpline 15100.\n"
         "- Keep your ID and basic case papers ready."
+    )
+
+
+def _constitutional_rights_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- अनुच्छेद 14: कानून के सामने समानता.\n"
+            "- अनुच्छेद 19: बोलने, शांतिपूर्ण सभा, संघ बनाने, आने-जाने, रहने और पेशा चुनने जैसी स्वतंत्रताएँ, उचित कानूनी प्रतिबंधों के अधीन.\n"
+            "- अनुच्छेद 21: जीवन और व्यक्तिगत स्वतंत्रता का संरक्षण.\n"
+            "- अनुच्छेद 22: गिरफ्तारी के कारण बताने, वकील से मिलने और सामान्यतः 24 घंटे में मजिस्ट्रेट के सामने पेश किए जाने का अधिकार.\n"
+            "- अनुच्छेद 32: Fundamental Rights लागू कराने के लिए Supreme Court जाने का अधिकार."
+        )
+    return (
+        "- Article 14: equality before law.\n"
+        "- Article 19: freedoms like speech, peaceful assembly, association, movement, residence, and profession, subject to reasonable restrictions.\n"
+        "- Article 21: protection of life and personal liberty.\n"
+        "- Article 22: important arrest protections, including being told the grounds of arrest, consulting a lawyer, and usually being produced before a magistrate within 24 hours.\n"
+        "- Article 32: the right to approach the Supreme Court to enforce Fundamental Rights."
+    )
+
+
+def _criminal_law_basics_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- भारत का मुख्य आपराधिक कानून अब Bharatiya Nyaya Sanhita, 2023 है, जो 1 जुलाई 2024 से लागू है.\n"
+            "- लोग अभी भी रोज़मर्रा की भाषा में IPC बोलते हैं, इसलिए दोनों नाम समझना उपयोगी है.\n"
+            "- चोरी, डकैती/लूट, उगाही, हमला, wrongful restraint और self-defence जैसे बुनियादी विषय इसी कानून में आते हैं.\n"
+            "- अगर आप चाहें, तो मैं किसी एक अपराध को बहुत सरल भाषा में अलग से समझा सकता हूँ."
+        )
+    return (
+        "- India's main criminal law is now the Bharatiya Nyaya Sanhita, 2023, in force from July 1, 2024.\n"
+        "- Many people still say IPC in everyday conversation, so it helps to understand both the older and current terminology.\n"
+        "- Basic topics like theft, robbery, extortion, assault, wrongful restraint, and private defence are covered there.\n"
+        "- If you want, I can explain any one of these offences in very simple language."
     )
 
 

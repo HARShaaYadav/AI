@@ -183,6 +183,86 @@ LEGAL_DATA = [
         ),
         "category": "child_rights",
     },
+    # ── Constitutional Rights ─────────────────────────────────────────────
+    {
+        "content": (
+            "Article 14 of the Constitution of India guarantees equality before the law and equal protection of the laws. "
+            "This means the State must treat people fairly and cannot act arbitrarily."
+        ),
+        "category": "constitutional_rights",
+    },
+    {
+        "content": (
+            "Article 19 of the Constitution protects key freedoms such as speech and expression, peaceful assembly, "
+            "association, movement, residence, and profession, subject to reasonable restrictions under law."
+        ),
+        "category": "constitutional_rights",
+    },
+    {
+        "content": (
+            "Article 21 protects life and personal liberty. In simple terms, the government cannot take away your liberty "
+            "except through a valid legal process. Courts have treated dignity, fair procedure, and privacy as part of this protection."
+        ),
+        "category": "constitutional_rights",
+    },
+    {
+        "content": (
+            "Article 22 gives important arrest protections. A person who is arrested should be told the grounds of arrest, "
+            "has the right to consult a lawyer, and must usually be produced before a magistrate within 24 hours."
+        ),
+        "category": "constitutional_rights",
+    },
+    {
+        "content": (
+            "Article 32 allows a person to approach the Supreme Court to enforce Fundamental Rights. "
+            "High Courts can also be approached under Article 226 for many rights-related legal remedies."
+        ),
+        "category": "constitutional_rights",
+    },
+    {
+        "content": (
+            "Article 39A directs the State to provide equal justice and free legal aid so that lack of money does not block access to justice. "
+            "This is why legal aid services are available through DLSA, SLSA, and NALSA."
+        ),
+        "category": "constitutional_rights",
+    },
+    # ── Criminal Law Basics ───────────────────────────────────────────────
+    {
+        "content": (
+            "India's main criminal law is now the Bharatiya Nyaya Sanhita, 2023, which came into force on 1 July 2024. "
+            "Many people still use old IPC terms in everyday speech, so it is helpful to explain both the older IPC name and the current law when needed."
+        ),
+        "category": "criminal_law_basics",
+    },
+    {
+        "content": (
+            "Under the Bharatiya Nyaya Sanhita, theft is covered in section 303, snatching in section 304, extortion in section 308, "
+            "and robbery in section 309. In plain language, theft is taking property dishonestly, while robbery involves theft or extortion with immediate violence or fear."
+        ),
+        "category": "criminal_law_basics",
+    },
+    {
+        "content": (
+            "Under the Bharatiya Nyaya Sanhita, wrongful restraint is covered in section 126 and wrongful confinement in section 127. "
+            "Wrongful restraint means illegally stopping someone from moving in a direction they can lawfully go. "
+            "Wrongful confinement is more serious and means keeping someone trapped within limits."
+        ),
+        "category": "criminal_law_basics",
+    },
+    {
+        "content": (
+            "Under the Bharatiya Nyaya Sanhita, force, criminal force, and assault are covered in sections 128 to 131. "
+            "In simple terms, assault usually means creating fear of immediate unlawful force, while criminal force means actually using unlawful force."
+        ),
+        "category": "criminal_law_basics",
+    },
+    {
+        "content": (
+            "The right of private defence is recognised under the Bharatiya Nyaya Sanhita. "
+            "A person may defend their body or property against certain unlawful attacks, but the force used should stay within lawful limits and depend on the danger faced."
+        ),
+        "category": "criminal_law_basics",
+    },
 ]
 
 

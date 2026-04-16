@@ -154,5 +154,11 @@ def test_generate_response_retries_qdrant_with_intent_fallback(monkeypatch):
     assert "zero fir" in result["response"].lower() or "any police station" in result["response"].lower()
 
 
+def test_detect_intent_for_constitutional_rights():
+    """Basic constitutional-rights questions should be recognized."""
+    result = llm.detect_intent("What are my rights under Article 21 and Article 22?")
+    assert result["intent"] == "constitutional_rights"
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
