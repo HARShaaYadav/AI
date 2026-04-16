@@ -10,14 +10,14 @@ A voice-first, multilingual AI legal aid assistant for people who face barriers 
 
 ## Tech Stack
 
-| Component | Technology | Cost |
-|---|---|---|
-| Voice Interface | [Vapi](https://vapi.ai) (STT + LLM + TTS) | $30 free credits |
-| Vector DB | [Qdrant](https://qdrant.tech) (RAG + memory) | Free (in-memory) |
-| Embeddings | FastEmbed (BAAI/bge-small-en) | Free (local) |
-| Backend | FastAPI (Python) | Free |
-| Document Gen | ReportLab (PDF templates) | Free |
-| Frontend | HTML / CSS / Vanilla JS | Free |
+| Component | Technology |
+|---|---|
+| Voice Interface | [Vapi](https://vapi.ai) (STT + LLM + TTS) |
+| Vector DB | [Qdrant](https://qdrant.tech) (RAG + memory) |
+| Embeddings | FastEmbed (BAAI/bge-small-en) |
+| Backend | FastAPI (Python) |
+| Document Gen | ReportLab (PDF templates) |
+| Frontend | HTML / CSS / Vanilla JS |
 
 ---
 
@@ -49,9 +49,8 @@ BACKEND_URL=http://localhost:8000
 
 **How to get Vapi keys:**
 1. Sign up at [vapi.ai](https://vapi.ai)
-2. Use code **`vapixhackblr`** to get **$30 free credits**
-3. Go to Dashboard → copy your **API Key** and **Public Key**
-4. Paste them in `.env`
+2. Go to Dashboard → copy your **API Key** and **Public Key**
+3. Paste them in `.env`
 
 > **Text chat works WITHOUT Vapi keys** — only voice calls need them.
 
@@ -65,7 +64,7 @@ uvicorn backend.main:app --reload --port 8000
 Open **http://localhost:8000** in your browser. Done!
 
 The server automatically:
-1. Loads the FastEmbed model (local, free)
+1. Loads the FastEmbed model (local)
 2. Creates Qdrant collections (in-memory)
 3. Seeds 18 legal knowledge entries into the vector DB
 4. Serves the frontend
@@ -159,8 +158,8 @@ The server automatically:
 ## Features
 
 - **Voice-first** — speak in your language, hear the answer back (via Vapi)
-- **No OpenAI key needed** — text chat uses free local embeddings
-- **Multilingual** — Hindi, English, Tamil, Bengali, Marathi, Telugu, Gujarati, Kannada, Punjabi, Urdu
+- **No OpenAI key needed** — text chat uses local embeddings
+- **Bilingual** — Hindi & English
 - **RAG-powered** — legal knowledge retrieved from Qdrant vector DB
 - **Personalized memory** — remembers past conversations per user
 - **Document generation** — auto-generates FIR drafts and complaints as PDF (template-based, no LLM)
@@ -201,12 +200,4 @@ Set `QDRANT_URL=http://localhost:6333` in `.env`.
 |---|---|
 | hi | हिंदी (Hindi) |
 | en | English |
-| ta | தமிழ் (Tamil) |
-| bn | বাংলা (Bengali) |
-| mr | मराठी (Marathi) |
-| te | తెలుగు (Telugu) |
-| gu | ગુજરાતી (Gujarati) |
-| kn | ಕನ್ನಡ (Kannada) |
-| pa | ਪੰਜਾਬੀ (Punjabi) |
-| ur | اردو (Urdu) |
 #AI
