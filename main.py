@@ -379,12 +379,19 @@ async def vapi_webhook(request: Request):
 
 # ── Serve frontend (must be LAST so API routes take priority) ────
 if os.path.isdir(FRONTEND_DIR):
-    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-
     @app.get("/")
     async def serve_frontend():
         print("Frontend served")
         print("Frontend requested")
+        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+    @app.get("/{path:path}")
+    async def serve_spa(path: str):
+        """Catch-all route for SPA — serve index.html for client-side routing"""
+        # If it's a static file, don't serve index.html
+        if path.startswith("static/") or path.startswith("docs/"):
+            return JSONResponse(status_code=404, content={"error": "Not found"})
+        # Serve index.html for all other routes
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
