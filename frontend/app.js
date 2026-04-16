@@ -21,6 +21,8 @@
   let vapiSessionMode = null;
   let pendingTypedMessages = [];
   let recentSpokenAssistantTexts = [];
+  let lastSpeechStartAt = 0;
+  let pendingSpeechFallbackTimer = null;
 
   async function initVapi() {
     // Use public key directly (Vapi public key is safe to embed in frontend)
@@ -35,6 +37,7 @@
     if (!vapiInstance) return;
 
     vapiInstance.on('speech-start', () => {
+      lastSpeechStartAt = Date.now();
       newMicBtn.classList.add('listening');
       newMicStatus.textContent = t('vcListening');
     });
@@ -285,6 +288,11 @@
   function speakAssistantReplyWithVapi(text) {
     if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text)) return;
     rememberSpokenAssistantText(text);
+    const requestedAt = Date.now();
+    if (pendingSpeechFallbackTimer) {
+      clearTimeout(pendingSpeechFallbackTimer);
+      pendingSpeechFallbackTimer = null;
+    }
     try {
       vapiInstance.send({
         type: 'say',
@@ -293,6 +301,28 @@
       });
     } catch (err) {
       console.error('Vapi say failed:', err);
+      speakAssistantReplyInBrowser(text);
+      return;
+    }
+
+    pendingSpeechFallbackTimer = setTimeout(() => {
+      if (lastSpeechStartAt < requestedAt) {
+        speakAssistantReplyInBrowser(text);
+      }
+    }, 1800);
+  }
+
+  function speakAssistantReplyInBrowser(text) {
+    if (!('speechSynthesis' in window) || !text) return;
+
+    try {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = getSpeechLang();
+      utterance.rate = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error('Browser speech fallback failed:', err);
     }
   }
 
