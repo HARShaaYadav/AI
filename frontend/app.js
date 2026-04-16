@@ -3,8 +3,8 @@
 (function () {
   'use strict';
 
-  // API calls use relative URLs — Vercel proxies /api/* to Railway backend
-  const API_BASE = '';
+  // API calls use Railway URL directly to bypass Vercel proxy build failures/limits
+  const API_BASE = 'https://aivoice.up.railway.app';
 
   /* ── State ───────────────────────────────────────────────── */
   let userId = localStorage.getItem('nyayavoice_user_id') || ('user_' + Math.random().toString(36).slice(2, 10));

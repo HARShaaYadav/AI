@@ -2,18 +2,6 @@
     "version": 2,
     "builds": [
         {
-            "src": "api/config.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "api/query.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "api/generate-document.py",
-            "use": "@vercel/python"
-        },
-        {
             "src": "frontend/index.html",
             "use": "@vercel/static"
         },
@@ -31,18 +19,6 @@
         }
     ],
     "routes": [
-        {
-            "src": "/api/config",
-            "dest": "/api/config.py"
-        },
-        {
-            "src": "/api/query",
-            "dest": "/api/query.py"
-        },
-        {
-            "src": "/api/generate-document",
-            "dest": "/api/generate-document.py"
-        },
         {
             "src": "/styles.css",
             "dest": "/frontend/styles.css"

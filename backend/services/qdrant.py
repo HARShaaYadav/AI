@@ -47,21 +47,24 @@ logger = logging.getLogger(__name__)
 
 embedding_model = None
 
+_embedding_init_done = False
+_embedding_lock = None
+
 def _init_embedding_model():
     global embedding_model
     if FASTEMBED_AVAILABLE:
         try:
-            logger.info(f"Loading embedding model: {EMBEDDING_MODEL} (first run downloads ~50MB)...")
+            logger.info(f"Loading embedding model: {EMBEDDING_MODEL} (may take a moment on first run)...")
             embedding_model = TextEmbedding(EMBEDDING_MODEL)
             logger.info("FastEmbed model ready.")
             return
         except Exception as e:
-            logger.warning(f"FastEmbed model failed to load: {e}")
+            logger.warning(f"FastEmbed model failed to load: {e}. Using hash-based fallback.")
 
     logger.info("Using built-in hash-based embeddings (no download needed).")
     embedding_model = None
 
-_init_embedding_model()
+# Initialize lazily on first embed() call to avoid blocking Railway startup health check
 
 if USE_MEMORY_QDRANT:
     logger.info("Using in-memory Qdrant (no Docker/server needed)")
