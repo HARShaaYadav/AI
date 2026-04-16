@@ -34,9 +34,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for development. For production, specify your domain
+    allow_origins=["*"],  # In production, specify allowed origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -379,8 +379,12 @@ async def vapi_webhook(request: Request):
 
 # ── Serve frontend (must be LAST so API routes take priority) ────
 if os.path.isdir(FRONTEND_DIR):
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
     @app.get("/")
     async def serve_frontend():
+        print("Frontend served")
+        print("Frontend requested")
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
