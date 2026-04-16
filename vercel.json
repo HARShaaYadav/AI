@@ -28,6 +28,18 @@
             "dest": "/api/config.py"
         },
         {
+            "src": "/api/(.*)",
+            "dest": "https://aivoice.up.railway.app/api/$1"
+        },
+        {
+            "src": "/vapi-webhook",
+            "dest": "https://aivoice.up.railway.app/vapi-webhook"
+        },
+        {
+            "src": "/health",
+            "dest": "https://aivoice.up.railway.app/health"
+        },
+        {
             "src": "/styles.css",
             "dest": "/frontend/styles.css"
         },

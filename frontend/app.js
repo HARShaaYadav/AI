@@ -3,7 +3,8 @@
 (function () {
   'use strict';
 
-  const API_BASE = window.location.origin;
+  // API calls use relative URLs — Vercel proxies /api/* to Railway backend
+  const API_BASE = '';
 
   /* ── State ───────────────────────────────────────────────── */
   let userId = localStorage.getItem('nyayavoice_user_id') || ('user_' + Math.random().toString(36).slice(2, 10));
