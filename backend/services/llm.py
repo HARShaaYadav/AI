@@ -32,6 +32,44 @@ TOPIC_LABELS = {
     "general_legal_query": "legal issue",
 }
 
+INTENT_FALLBACK_QUERIES = {
+    "theft_complaint": [
+        "theft FIR stolen property zero FIR police station",
+        "how to file FIR for theft in India",
+    ],
+    "fir_process": [
+        "FIR process zero FIR nearest police station India",
+        "where to file FIR police station zero FIR",
+    ],
+    "domestic_violence": [
+        "domestic violence complaint women helpline protection officer India",
+    ],
+    "harassment": [
+        "harassment complaint POSH police cyberstalking India",
+    ],
+    "wage_theft": [
+        "unpaid wages labour commissioner complaint India",
+    ],
+    "land_dispute": [
+        "land dispute encroachment complaint revenue court police India",
+    ],
+    "cyber_crime": [
+        "cyber crime complaint 1930 cybercrime gov in India",
+    ],
+    "consumer_rights": [
+        "consumer complaint refund eDaakhil district consumer forum India",
+    ],
+    "legal_aid": [
+        "free legal aid DLSA NALSA 15100 India",
+    ],
+    "rti": [
+        "RTI application fee 30 days appeal India",
+    ],
+    "child_rights": [
+        "child helpline 1098 POCSO child labour complaint India",
+    ],
+}
+
 INTENT_PATTERNS: Dict[str, str] = {
     "theft_complaint": r"chori|theft|stolen|चोरी|phone|फ़ोन|snatch|rob|loot|लूट",
     "domestic_violence": r"violen|hinsa|हिंसा|मार|domestic|abuse|beat|पीट|dv|498",
@@ -130,7 +168,7 @@ def generate_response(
                 "urgency": True,
             }
 
-        legal_results = search_legal_knowledge(user_message, top_k=6)
+        legal_results = _search_legal_knowledge_with_fallback(user_message, intent, top_k=6)
         memories = get_user_memory(user_id, top_k=2)
 
         strong_results = [r for r in legal_results if r["score"] >= 0.25]
@@ -220,6 +258,31 @@ def _generate_with_gemini(user_message: str, context: str, lang: str, conversati
     except Exception as e:
         logger.error(f"Gemini generation failed: {e}")
         return ""
+
+
+def get_retrieval_candidates(user_message: str, intent: str = "") -> list:
+    candidates = [user_message.strip()]
+    if intent:
+        for query in INTENT_FALLBACK_QUERIES.get(intent, []):
+            if query not in candidates:
+                candidates.append(query)
+    return [candidate for candidate in candidates if candidate]
+
+
+def _search_legal_knowledge_with_fallback(user_message: str, intent: str, top_k: int = 6) -> list:
+    merged_results = []
+    seen = {}
+
+    for query in get_retrieval_candidates(user_message, intent):
+        for result in search_legal_knowledge(query, top_k=top_k):
+            key = (result.get("category", ""), result.get("content", ""))
+            existing = seen.get(key)
+            if not existing or result.get("score", 0) > existing.get("score", 0):
+                seen[key] = result
+
+    merged_results = list(seen.values())
+    merged_results.sort(key=lambda item: item.get("score", 0), reverse=True)
+    return merged_results[:top_k]
 
 
 def store_turn(user_id, user_message, reply, intent):

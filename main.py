@@ -196,11 +196,21 @@ async def vapi_webhook(request: Request):
         params = fn.get("parameters", {})
 
         if fn_name == "query_legal":
+            from backend.services.llm import detect_intent, get_retrieval_candidates
             text = params.get("text", "")
             if not text:
                 return JSONResponse({"result": "Please tell me your problem."})
 
-            results = search_legal_knowledge(text, top_k=4)
+            intent = detect_intent(text).get("intent", "general_legal_query")
+            merged = {}
+            for candidate in get_retrieval_candidates(text, intent):
+                for result in search_legal_knowledge(candidate, top_k=4):
+                    key = (result.get("category", ""), result.get("content", ""))
+                    existing = merged.get(key)
+                    if not existing or result.get("score", 0) > existing.get("score", 0):
+                        merged[key] = result
+
+            results = sorted(merged.values(), key=lambda item: item.get("score", 0), reverse=True)[:4]
             if results:
                 context = "\n\n".join(
                     f"[{r['category'].replace('_',' ').title()}]: {r['content']}"

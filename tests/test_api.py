@@ -125,5 +125,34 @@ def test_generate_response_legal_aid_without_search_uses_intent_fallback(monkeyp
     assert "15100" in result["response"] or "district legal services authority" in result["response"].lower()
 
 
+def test_generate_response_retries_qdrant_with_intent_fallback(monkeypatch):
+    """If the user query is weak, fallback Qdrant queries should still surface relevant knowledge."""
+    def fake_search(query, **kwargs):
+        if "report a fir where to go" in query.lower():
+            return []
+        if "zero fir" in query.lower() or "fir process" in query.lower():
+            return [
+                {
+                    "content": "You can file an FIR at any police station. This is called a Zero FIR.",
+                    "category": "fir_process",
+                    "score": 0.79,
+                }
+            ]
+        return []
+
+    monkeypatch.setattr(llm, "search_legal_knowledge", fake_search)
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="I need to report a fir where to go",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert "zero fir" in result["response"].lower() or "any police station" in result["response"].lower()
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
