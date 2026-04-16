@@ -1,6 +1,53 @@
+# Python & Virtual Environment
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
 venv/
-.env
+.venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Project-specific
+generated_docs/
+logs/
+*.log
 server.log
 server.err.log
+
+# Environment & Configuration
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node.js (if you add it later)
+node_modules/
+package-lock.json
+yarn.lock
+npm-debug.log*
+
+# Pytest & Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temp files
+*.tmp
+.cache/

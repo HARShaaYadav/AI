@@ -745,7 +745,12 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
           </button>
         </div>
-        <input type="text" class="form-input" id="firWitness" data-i18n-placeholder="fir4WitPh" placeholder="Witness name/contact (optional)" style="margin-top:.5rem;">
+        <div class="input-with-voice" style="margin-top:.5rem;">
+          <input type="text" class="form-input" id="firWitness" data-i18n-placeholder="fir4WitPh" placeholder="Witness name/contact (optional)">
+          <button class="voice-input-btn" data-voice-target="firWitness" type="button" aria-label="Voice input">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+          </button>
+        </div>
         <div class="legal-tip-inline">
           <strong data-i18n="firTip4Label">Tip:</strong>
           <span data-i18n="firTip4">An FIR can be filed even without knowing the suspect. Include any identifying details — appearance, vehicle number, direction of escape. Witness statements strengthen the case.</span>
@@ -772,7 +777,6 @@
           <p data-i18n="firDoneDesc">Your FIR has been generated. Download it and take it to the nearest police station.</p>
           <div class="wizard-btns" style="justify-content:center;">
             <button class="btn btn-primary" data-i18n="firDownload">Download PDF</button>
-            <button class="btn btn-outline" data-i18n="firWhatsapp">Share via WhatsApp</button>
           </div>
           <button class="btn btn-secondary" id="firNewBtn" data-i18n="firNew" style="margin-top:1rem;">+ New FIR</button>
         </div>
