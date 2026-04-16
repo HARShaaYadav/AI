@@ -17,6 +17,9 @@
   /* ── Vapi ────────────────────────────────────────────────── */
   let vapiInstance = null;
   let vapiPublicKey = '';
+  let vapiCallActive = false;
+  let vapiSessionMode = null;
+  let pendingTypedMessages = [];
 
   async function initVapi() {
     // Use public key directly (Vapi public key is safe to embed in frontend)
@@ -39,23 +42,40 @@
       newMicStatus.textContent = t('vcProcessing');
     });
     vapiInstance.on('message', (msg) => {
+      if (msg.type === 'status-update') {
+        if (msg.status === 'active' || msg.status === 'started' || msg.status === 'in-progress') {
+          vapiCallActive = true;
+        }
+      }
       if (msg.type === 'transcript' && msg.transcriptType === 'final') {
         if (msg.role === 'user') {
+          if (consumePendingTypedMessage(msg.transcript)) return;
           showPage('chat');
           addMessage(msg.transcript, true, 'text');
+          conversationHistory.push({ role: 'user', text: msg.transcript });
         } else if (msg.role === 'assistant') {
+          removeTypingIndicator();
           addMessage(msg.transcript, false, 'markdown');
+          conversationHistory.push({ role: 'assistant', text: msg.transcript });
+          messageCount++;
+          localStorage.setItem('nyayavoice_msg_count', messageCount);
+          updateStats();
         }
       }
     });
     vapiInstance.on('call-end', () => {
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
+      vapiCallActive = false;
+      vapiSessionMode = null;
     });
     vapiInstance.on('error', (err) => {
       console.error('Vapi error:', err);
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      removeTypingIndicator();
     });
   }
 
@@ -219,6 +239,67 @@
     if (el) el.remove();
   }
 
+  function normalizeText(text) {
+    return String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function queueTypedMessage(text) {
+    pendingTypedMessages.push(normalizeText(text));
+  }
+
+  function consumePendingTypedMessage(text) {
+    const normalized = normalizeText(text);
+    const index = pendingTypedMessages.indexOf(normalized);
+    if (index >= 0) {
+      pendingTypedMessages.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  async function ensureVapiSession(mode = 'chat') {
+    if (!vapiInstance) return false;
+    if (vapiCallActive) return true;
+
+    vapiSessionMode = mode;
+    await vapiInstance.start({
+      serverUrl: API_BASE + '/vapi-webhook',
+      serverUrlSecret: '',
+      metadata: { user_id: userId, language: getLang(), mode },
+    });
+    vapiCallActive = true;
+    return true;
+  }
+
+  async function sendToVapiChat(userText) {
+    if (!vapiInstance) return false;
+
+    addTypingIndicator();
+    queueTypedMessage(userText);
+    conversationHistory.push({ role: 'user', text: userText });
+
+    try {
+      await ensureVapiSession('chat');
+      vapiSessionMode = 'chat';
+      vapiInstance.send({
+        type: 'add-message',
+        message: {
+          role: 'user',
+          content: userText,
+        },
+        triggerResponseEnabled: true,
+      });
+      return true;
+    } catch (err) {
+      console.error('Vapi chat send failed:', err);
+      removeTypingIndicator();
+      const normalized = normalizeText(userText);
+      pendingTypedMessages = pendingTypedMessages.filter(item => item !== normalized);
+      conversationHistory = conversationHistory.filter((msg, index) => !(index === conversationHistory.length - 1 && msg.role === 'user' && msg.text === userText));
+      return false;
+    }
+  }
+
   async function sendToBackend(userText) {
     addTypingIndicator();
     try {
@@ -230,8 +311,6 @@
       });
 
       removeTypingIndicator();
-
-      conversationHistory.push({ role: 'user', text: userText });
       conversationHistory.push({ role: 'assistant', text: result.response });
 
       if (result.urgency) {
@@ -284,6 +363,13 @@
     if (!text) return;
     addMessage(text, true, 'text');
     chatInput.value = '';
+    if (vapiInstance) {
+      sendToVapiChat(text).then(sent => {
+        if (!sent) sendToBackend(text);
+      });
+      return;
+    }
+    conversationHistory.push({ role: 'user', text: text });
     sendToBackend(text);
   });
 
@@ -294,6 +380,13 @@
       showPage('chat');
       const text = chip.textContent.trim();
       addMessage(text, true, 'text');
+      if (vapiInstance) {
+        sendToVapiChat(text).then(sent => {
+          if (!sent) sendToBackend(text);
+        });
+        return;
+      }
+      conversationHistory.push({ role: 'user', text: text });
       sendToBackend(text);
     });
   });
@@ -321,10 +414,18 @@
   });
 
   function startVapiCall() {
-    if (newMicBtn.classList.contains('listening')) {
+    if (newMicBtn.classList.contains('listening') || (vapiCallActive && vapiSessionMode === 'voice')) {
       vapiInstance.stop();
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      return;
+    }
+    if (vapiCallActive && vapiSessionMode === 'chat') {
+      newMicBtn.classList.add('listening');
+      newMicStatus.textContent = t('vcListening');
+      vapiSessionMode = 'voice';
       return;
     }
     newMicBtn.classList.add('listening');
@@ -333,13 +434,15 @@
     vapiInstance.start({
       serverUrl: API_BASE + '/vapi-webhook',
       serverUrlSecret: '',
-      metadata: { user_id: userId, language: getLang() },
+      metadata: { user_id: userId, language: getLang(), mode: 'voice' },
     }).catch(err => {
       console.error('Vapi call failed:', err);
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
       startWebSpeechDashboard();
     });
+    vapiCallActive = true;
+    vapiSessionMode = 'voice';
   }
 
   /* ── WEB SPEECH API — Fallback Voice Input ─────────────── */
@@ -379,6 +482,7 @@
       activeRecognition = null;
       showPage('chat');
       addMessage(transcript, true, 'text');
+      conversationHistory.push({ role: 'user', text: transcript });
       sendToBackend(transcript);
     };
 

@@ -92,5 +92,38 @@ def test_generate_response_answers_specific_question(monkeypatch):
     assert "Please describe your issue in detail" not in result["response"]
 
 
+def test_generate_response_fir_query_without_strong_search_still_answers(monkeypatch):
+    """FIR queries should still get relevant guidance even if retrieval is weak."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="I need to report a fir where to go",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert "nearest police station" in result["response"] or "zero fir" in result["response"].lower()
+    assert "Please describe your issue in detail" not in result["response"]
+
+
+def test_generate_response_legal_aid_without_search_uses_intent_fallback(monkeypatch):
+    """Known intents should return relevant help even without retrieval context."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="How can I get free legal aid",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert "15100" in result["response"] or "district legal services authority" in result["response"].lower()
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

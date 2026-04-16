@@ -125,6 +125,7 @@ async def vapi_webhook(request: Request):
         call = message.get("call", {})
         metadata = call.get("metadata", {})
         language = metadata.get("language", "en")
+        session_mode = metadata.get("mode", "voice")
 
         lang_names = {
             "hi": "Hindi", "en": "English", "ta": "Tamil",
@@ -132,10 +133,12 @@ async def vapi_webhook(request: Request):
             "gu": "Gujarati", "kn": "Kannada", "pa": "Punjabi", "ur": "Urdu",
         }
         lang_name = lang_names.get(language, "English")
+        is_chat_mode = session_mode == "chat"
 
         return JSONResponse({
             "assistant": {
-                "firstMessage": _get_greeting(language),
+                "firstMessage": None if is_chat_mode else _get_greeting(language),
+                "firstMessageMode": "assistant-waits-for-user" if is_chat_mode else "assistant-speaks-first",
                 "model": {
                     "provider": "openai",
                     "model": "gpt-4o",

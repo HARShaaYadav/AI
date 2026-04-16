@@ -134,6 +134,7 @@ def generate_response(
         memories = get_user_memory(user_id, top_k=2)
 
         strong_results = [r for r in legal_results if r["score"] >= 0.25]
+        intent_results = _filter_results_for_intent(legal_results, intent)
 
         if GEMINI_API_KEY:
             # Use Gemini LLM to synthesize a tailored response based on RAG context
@@ -143,13 +144,17 @@ def generate_response(
                 # Fallback if Gemini fails
                 if strong_results:
                     reply = _build_grounded_response(user_message, strong_results, intent, detected_lang)
+                elif intent_results:
+                    reply = _build_grounded_response(user_message, intent_results, intent, detected_lang)
                 else:
-                    reply = _clarifying_or_generic_response(user_message, intent, detected_lang)
+                    reply = _intent_or_generic_response(user_message, intent, detected_lang)
         else:
             if strong_results:
                 reply = _build_grounded_response(user_message, strong_results, intent, detected_lang)
+            elif intent_results:
+                reply = _build_grounded_response(user_message, intent_results, intent, detected_lang)
             else:
-                reply = _clarifying_or_generic_response(user_message, intent, detected_lang)
+                reply = _intent_or_generic_response(user_message, intent, detected_lang)
 
         if memories:
             memory_note = _format_memory_note(memories, detected_lang)
@@ -288,6 +293,27 @@ def _build_grounded_response(user_message: str, results: list, intent: str, lang
     return "\n".join(response_lines)
 
 
+def _filter_results_for_intent(results: list, intent: str) -> list:
+    if not results:
+        return []
+    intent_categories = {
+        "theft_complaint": {"theft", "fir_process"},
+        "fir_process": {"fir_process", "theft"},
+        "domestic_violence": {"domestic_violence"},
+        "harassment": {"harassment", "cyber_crime"},
+        "wage_theft": {"wage_theft"},
+        "land_dispute": {"land_dispute"},
+        "cyber_crime": {"cyber_crime"},
+        "consumer_rights": {"consumer_rights"},
+        "legal_aid": {"legal_aid"},
+        "rti": {"rti"},
+        "child_rights": {"child_rights"},
+    }
+    allowed = intent_categories.get(intent, set())
+    filtered = [r for r in results if r.get("category") in allowed]
+    return filtered[:3]
+
+
 def _extract_key_points(results: list) -> list:
     seen = set()
     points = []
@@ -387,6 +413,12 @@ def _suggest_next_steps(intent: str, results: list, lang: str) -> list:
 
 def _detect_specific_question(user_message: str, lang: str = "en") -> str:
     lower = user_message.lower()
+    if ("where" in lower and "fir" in lower) or ("report" in lower and "fir" in lower):
+        return (
+            "आप FIR नजदीकी किसी भी पुलिस स्टेशन में दर्ज करा सकते हैं। अगर घटना किसी दूसरे इलाके की है, तो भी Zero FIR दर्ज हो सकती है।"
+            if lang == "hi"
+            else "You can go to the nearest police station to report an FIR, and if the incident happened elsewhere you can still ask for a Zero FIR."
+        )
     if "how to file" in lower or ("file" in lower and "case" in lower):
         return (
             "आप पहले घटना के तथ्य साफ़ लिखें, फिर सही प्राधिकरण के पास शिकायत या FIR दर्ज करें और उसकी कॉपी रखें।"
@@ -424,6 +456,111 @@ def _clarifying_or_generic_response(user_message: str, intent: str, lang: str) -
             f"what to do, where to file, what documents are needed, or what the next step is."
         )
     return _generic_guidance(lang)
+
+
+def _intent_or_generic_response(user_message: str, intent: str, lang: str) -> str:
+    intent_reply = _intent_guidance(intent, user_message, lang)
+    if intent_reply:
+        return intent_reply
+    return _clarifying_or_generic_response(user_message, intent, lang)
+
+
+def _intent_guidance(intent: str, user_message: str, lang: str) -> str:
+    if intent == "fir_process":
+        return _fir_guidance(user_message, lang)
+    if intent == "theft_complaint":
+        return _theft_guidance(lang)
+    if intent == "cyber_crime":
+        return _cyber_guidance(lang)
+    if intent == "consumer_rights":
+        return _consumer_guidance(lang)
+    if intent == "legal_aid":
+        return _legal_aid_guidance(lang)
+    return ""
+
+
+def _fir_guidance(user_message: str, lang: str) -> str:
+    short_answer = _detect_specific_question(user_message, lang)
+    if lang == "hi":
+        lines = [
+            "FIR के लिए आप नजदीकी पुलिस स्टेशन जा सकते हैं.",
+            "अगर घटना किसी दूसरे इलाके की है, तब भी आप Zero FIR दर्ज कराने को कह सकते हैं.",
+            "अपने साथ यह जानकारी रखें: क्या हुआ, कब हुआ, कहाँ हुआ, और अगर पता हो तो आरोपी या गवाह की जानकारी.",
+            "FIR दर्ज होने के बाद उसकी मुफ्त कॉपी जरूर लें.",
+        ]
+        close = "अगर आप चाहें, तो मैं FIR के लिए एक ready-to-file draft भी बना सकता हूँ।"
+    else:
+        lines = [
+            "You can go to the nearest police station to file an FIR.",
+            "If the incident happened in another area, you can still ask for a Zero FIR and the police should transfer it to the correct station.",
+            "Carry the basic facts: what happened, when it happened, where it happened, and any suspect or witness details if available.",
+            "Ask for a free copy of the FIR after it is registered.",
+        ]
+        close = "If you want, I can also help draft the FIR in a ready-to-file format."
+
+    response = "\n".join(f"- {line}" for line in lines)
+    if short_answer:
+        prefix = "संक्षेप में: " if lang == "hi" else "In short: "
+        response = prefix + short_answer + "\n\n" + response
+    return response + "\n\n" + close
+
+
+def _theft_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- चोरी की घटना के लिए नजदीकी पुलिस स्टेशन में FIR या Zero FIR दर्ज कराएँ.\n"
+            "- क्या चोरी हुआ, कब हुआ, कहाँ हुआ और कोई सबूत हो तो साथ रखें.\n"
+            "- FIR की मुफ्त कॉपी लें.\n\n"
+            "अगर आप चाहें, तो मैं चोरी की शिकायत का ड्राफ्ट तैयार कर सकता हूँ।"
+        )
+    return (
+        "- For theft, go to the nearest police station and ask to file an FIR or Zero FIR.\n"
+        "- Keep the basic facts ready: what was stolen, when, where, and any proof you have.\n"
+        "- Take a free copy of the FIR after registration.\n\n"
+        "If you want, I can help draft the theft complaint for you."
+    )
+
+
+def _cyber_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- स्क्रीनशॉट, ट्रांजैक्शन आईडी, नंबर और लिंक सुरक्षित रखें.\n"
+            "- cybercrime.gov.in पर रिपोर्ट करें या 1930 पर कॉल करें.\n"
+            "- जरूरत हो तो पुलिस स्टेशन में FIR भी दर्ज करें."
+        )
+    return (
+        "- Save screenshots, transaction IDs, phone numbers, and links.\n"
+        "- Report quickly at cybercrime.gov.in or call 1930.\n"
+        "- File an FIR at the police station as well if needed."
+    )
+
+
+def _consumer_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- बिल, वारंटी और विक्रेता से हुई बात सुरक्षित रखें.\n"
+            "- पहले लिखित में refund या replacement माँगें.\n"
+            "- समाधान न मिले तो eDaakhil या जिला उपभोक्ता फोरम में शिकायत करें."
+        )
+    return (
+        "- Keep the bill, warranty, and seller communication safely.\n"
+        "- First ask for a refund or replacement in writing.\n"
+        "- If unresolved, file a complaint on eDaakhil or before the District Consumer Forum."
+    )
+
+
+def _legal_aid_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- अपने जिले के DLSA से संपर्क करें.\n"
+            "- NALSA हेल्पलाइन 15100 पर कॉल करें.\n"
+            "- अपनी ID और केस के basic papers साथ रखें."
+        )
+    return (
+        "- Contact the District Legal Services Authority in your district.\n"
+        "- Call NALSA helpline 15100.\n"
+        "- Keep your ID and basic case papers ready."
+    )
 
 
 def _is_vague_question(user_message: str) -> bool:
