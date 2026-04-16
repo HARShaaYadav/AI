@@ -899,6 +899,8 @@
     if (sidebar) sidebar.style.display = '';
     if (mainContent) mainContent.style.display = '';
     if (mobileHeader) mobileHeader.style.display = '';
+    const emergencyStrip = document.querySelector('.emergency-strip');
+    if (emergencyStrip) emergencyStrip.style.display = '';
   }
 
   function openAuthModal() {
