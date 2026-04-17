@@ -113,7 +113,7 @@ INTENT_PATTERNS: Dict[str, str] = {
     "harassment": r"harass|posh|उत्पीड़|stalking|eve.?teas|molestation|छेड़",
     "wage_theft": r"wage|vetan|वेतन|salary|pay|भुगतान|mazduri|मज़दूरी|labour|labor",
     "land_dispute": r"land|bhumi|भूमि|ज़मीन|zameen|property|सम्पत्ति|plot|encroach",
-    "cyber_crime": r"cyber|hack|online|fraud|धोखा|ऑनलाइन|scam|phishing|sextort",
+    "cyber_crime": r"cyber|साइबर|hack|hacking|online|ऑनलाइन|fraud|धोखा|धोखाधड़ी|फ्रॉड|scam|phishing|sextort|otp fraud|upi fraud|identity theft|अपराध",
     "consumer_rights": r"consumer|उपभोक्ता|refund|product|defect|warranty|खराब",
     "rti": r"rti|सूचना|right to info|आरटीआई|information act",
     "fir_process": r"fir|एफ़आईआर|first information|zero fir|police station|थाना",

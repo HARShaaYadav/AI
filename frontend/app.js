@@ -375,41 +375,6 @@
     }
   }
 
-  async function sendToBackend(userText) {
-    addTypingIndicator();
-    try {
-      const result = await apiCall('/api/query', {
-        user_id: userId,
-        text: userText,
-        language: getLang(),
-        conversation: conversationHistory.slice(-8),
-      });
-
-      removeTypingIndicator();
-      conversationHistory.push({ role: 'assistant', text: result.response });
-
-      if (result.urgency) {
-        addMessage(
-          '<div class="msg-alert"><strong>EMERGENCY</strong></div>' + formatMessageContent(result.response),
-          false,
-          'html'
-        );
-      } else {
-        addMessage(result.response, false, 'markdown');
-      }
-      speakAssistantReplyInBrowser(result.response);
-
-      messageCount++;
-      localStorage.setItem('nyayavoice_msg_count', messageCount);
-      updateStats();
-
-    } catch (err) {
-      removeTypingIndicator();
-      console.error('Backend query failed:', err);
-      fallbackReply(userText);
-    }
-  }
-
   /* ── FALLBACK (offline / no backend) ───────────────────── */
   const LEGAL_RESPONSES = {
     en: {
@@ -435,19 +400,23 @@
     speakAssistantReplyInBrowser(reply);
   }
 
-  sendBtn.addEventListener('click', () => {
-    const text = chatInput.value.trim();
+  function handleOutgoingChatMessage(text) {
     if (!text) return;
     addMessage(text, true, 'text');
-    chatInput.value = '';
     if (vapiInstance) {
       sendToVapiChat(text).then(sent => {
-        if (!sent) sendToBackend(text);
+        if (!sent) fallbackReply(text);
       });
       return;
     }
-    conversationHistory.push({ role: 'user', text: text });
-    sendToBackend(text);
+    fallbackReply(text);
+  }
+
+  sendBtn.addEventListener('click', () => {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    handleOutgoingChatMessage(text);
   });
 
   chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendBtn.click(); });
@@ -456,15 +425,7 @@
     chip.addEventListener('click', () => {
       showPage('chat');
       const text = chip.textContent.trim();
-      addMessage(text, true, 'text');
-      if (vapiInstance) {
-        sendToVapiChat(text).then(sent => {
-          if (!sent) sendToBackend(text);
-        });
-        return;
-      }
-      conversationHistory.push({ role: 'user', text: text });
-      sendToBackend(text);
+      handleOutgoingChatMessage(text);
     });
   });
 
@@ -558,9 +519,7 @@
       newMicStatus.textContent = t('vcReady');
       activeRecognition = null;
       showPage('chat');
-      addMessage(transcript, true, 'text');
-      conversationHistory.push({ role: 'user', text: transcript });
-      sendToBackend(transcript);
+      handleOutgoingChatMessage(transcript);
     };
 
     recognition.onerror = () => {
