@@ -5,4 +5,3 @@ venv/
 server.log
 server.err.log
 generated_docs/
-.env.example
