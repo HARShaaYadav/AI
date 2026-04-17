@@ -263,6 +263,123 @@ LEGAL_DATA = [
         ),
         "category": "criminal_law_basics",
     },
+    # Property and Rent Issues
+    {
+        "content": (
+            "Property and rent disputes can include landlord not returning deposit, illegal eviction, rent agreement disputes, "
+            "property encroachment, boundary disputes, unauthorized construction, society disputes, builder delay in possession, "
+            "fraud in property sale, fake property documents, utility disconnection by landlord, tenant not vacating, rent increase disputes, "
+            "common area disputes, and parking conflicts. In these matters, first collect the agreement, payment proof, property papers, bills, chats, and photos. "
+            "A legal notice is often the first practical step. Depending on the issue, the matter may go to Civil Court, Rent Tribunal, or Consumer Court in builder cases."
+        ),
+        "category": "property_rent",
+    },
+    {
+        "content": (
+            "Useful documents in property and rent issues include rent agreement or lease deed, sale deed or property papers, payment receipts, bank statements, "
+            "WhatsApp chats or emails, property tax receipts, electricity and water bills, photos or videos of the property, society maintenance records, "
+            "and approved building plans in illegal construction cases. Written agreements are much stronger than verbal arrangements."
+        ),
+        "category": "property_rent",
+    },
+    # Family and Personal Issues
+    {
+        "content": (
+            "Family and personal issues can include divorce, domestic violence, dowry harassment, child custody, maintenance, inheritance disputes, will disputes, "
+            "elder abuse, second marriage fraud, forced marriage, live-in relationship disputes, child neglect, adoption issues, false allegations, and related complaints. "
+            "If there is abuse or threat, approach police or a Protection Officer without delay and preserve evidence. Depending on the issue, the matter may be filed in Family Court, "
+            "Civil Court, or a police station if criminal offences are involved."
+        ),
+        "category": "family_personal",
+    },
+    {
+        "content": (
+            "Important documents in family and personal disputes may include marriage certificate, wedding photos, medical reports, prior police complaints, chats or call recordings, "
+            "income proof, bank statements, child's birth certificate, proof of residence, inheritance documents, wills, and evidence of dowry or gifts. "
+            "In abuse cases, medical records, photos, and written messages can be very important evidence."
+        ),
+        "category": "family_personal",
+    },
+    # Employment and Workplace Issues
+    {
+        "content": (
+            "Employment and workplace issues can include salary not paid, wrongful termination, workplace harassment, sexual harassment under POSH, bond disputes, unfair appraisal, "
+            "unpaid overtime, PF not deposited, fake job offers, workplace discrimination, blacklisting, internship exploitation, resignation issues, denial of experience letter, "
+            "and workplace data privacy violations. Start by collecting emails, offer letter, salary proof, and internal complaint records. Depending on the issue, the matter may go to the Labour Court, "
+            "labour authority, Internal Complaints Committee, or police in fraud cases."
+        ),
+        "category": "workplace_issues",
+    },
+    {
+        "content": (
+            "Useful documents in employment disputes include offer letter, appointment letter, employment contract, salary slips, bank statements, emails with HR or managers, resignation or termination letter, "
+            "attendance records, PF or ESI records, and copies of internal complaints. Even if there is no formal contract, emails and salary credits can still be important evidence."
+        ),
+        "category": "workplace_issues",
+    },
+    # Traffic and Public Issues
+    {
+        "content": (
+            "Traffic and public issues can include traffic challan disputes, drunk driving cases, accident claims, hit and run, road rage, vehicle theft, driving without licence, insurance claim rejection, "
+            "pollution certificate issues, and public nuisance. Usually, you should gather evidence quickly and contact police where necessary. Depending on the issue, the matter may go to the Traffic Police, "
+            "Motor Accident Claims Tribunal (MACT), insurer, or police station."
+        ),
+        "category": "traffic_public",
+    },
+    {
+        "content": (
+            "Important documents in traffic and accident matters include driving licence, RC, insurance policy, FIR copy in accident cases, photos or videos of the accident, medical reports, repair bills, witness statements, "
+            "and traffic challan receipts. In accident claims, FIR and photos often make the case much stronger."
+        ),
+        "category": "traffic_public",
+    },
+    # Financial and Banking Issues
+    {
+        "content": (
+            "Financial and banking issues can include loan harassment, credit score errors, bank fraud, unauthorized transactions, ATM issues, insurance claim rejection, NBFC fraud, cheque bounce, debt recovery threats, "
+            "and investment scams. Inform the bank immediately, preserve transaction proof, and escalate without delay in fraud matters. Depending on the dispute, you may need the bank's grievance system, RBI Ombudsman, "
+            "police complaint, cyber complaint, civil court, or cheque-bounce legal process."
+        ),
+        "category": "financial_banking",
+    },
+    {
+        "content": (
+            "Useful documents in financial and banking disputes include bank statements, loan agreement, EMI receipts, cheque copy, bounce memo, emails and SMS from the bank, credit report, insurance policy documents, "
+            "and investment proofs. In cheque-bounce matters, the cheque, bank return memo, and legal notice are especially important."
+        ),
+        "category": "financial_banking",
+    },
+    # Detailed evidence for existing cyber and consumer categories
+    {
+        "content": (
+            "In cyber and online crime cases such as online fraud, UPI scams, identity theft, hacking, cyber stalking, revenge porn, fake profiles, OTP fraud, phishing, crypto scams, fake e-commerce sites, "
+            "and deepfake misuse, preserve screenshots, transaction receipts, bank or UPI statements, phone numbers or IDs used by the scammer, website links, app details, call recordings if available, "
+            "device logs, and complaint acknowledgement from the cyber portal. Report quickly because digital evidence can disappear fast."
+        ),
+        "category": "cyber_crime",
+    },
+    {
+        "content": (
+            "In consumer complaints such as defective products, fake products, service deficiency, wrong billing, non-delivery, refund denial, warranty disputes, hidden charges, misleading ads, and subscription traps, "
+            "keep the invoice or bill, warranty card, order confirmation email, payment proof, screenshots of complaints to the company, product photos or videos, delivery receipt, and advertisement copy if there was a misleading claim."
+        ),
+        "category": "consumer_rights",
+    },
+    # General process and universal evidence
+    {
+        "content": (
+            "For many legal matters, a common step-by-step process is: collect evidence, send a legal notice, file a complaint or FIR where needed, hire a lawyer if necessary, and attend hearings. "
+            "Criminal matters usually begin with police or FIR, while civil disputes often go to court or tribunal."
+        ),
+        "category": "general_legal_query",
+    },
+    {
+        "content": (
+            "Strong evidence in many legal cases can include government ID, address proof, written agreements, photographs, videos, audio recordings if lawfully obtained, witness statements, emails, chats, logs, receipts, "
+            "bank statements, and official records. Clear written and digital proof often makes a case much stronger."
+        ),
+        "category": "general_legal_query",
+    },
 ]
 
 

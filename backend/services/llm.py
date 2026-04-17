@@ -27,12 +27,17 @@ TOPIC_LABELS = {
     "theft": "theft",
     "theft_complaint": "theft",
     "fir_process": "FIR process",
+    "property_rent": "property and rent issues",
+    "family_personal": "family and personal issues",
+    "workplace_issues": "employment and workplace issues",
     "domestic_violence": "domestic violence",
     "harassment": "harassment",
     "wage_theft": "unpaid wages",
     "land_dispute": "land dispute",
     "cyber_crime": "cyber crime",
     "consumer_rights": "consumer rights",
+    "traffic_public": "traffic and public issues",
+    "financial_banking": "financial and banking issues",
     "legal_aid": "free legal aid",
     "rti": "RTI",
     "child_rights": "child rights",
@@ -49,6 +54,15 @@ INTENT_FALLBACK_QUERIES = {
     "fir_process": [
         "FIR process zero FIR nearest police station India",
         "where to file FIR police station zero FIR",
+    ],
+    "property_rent": [
+        "rent agreement deposit eviction builder delay civil court rent tribunal consumer court India",
+    ],
+    "family_personal": [
+        "family court divorce custody maintenance inheritance domestic violence India",
+    ],
+    "workplace_issues": [
+        "salary not paid wrongful termination labour court POSH ICC workplace complaint India",
     ],
     "domestic_violence": [
         "domestic violence complaint women helpline protection officer India",
@@ -67,6 +81,12 @@ INTENT_FALLBACK_QUERIES = {
     ],
     "consumer_rights": [
         "consumer complaint refund eDaakhil district consumer forum India",
+    ],
+    "traffic_public": [
+        "traffic challan accident claim MACT traffic police insurance claim India",
+    ],
+    "financial_banking": [
+        "bank fraud unauthorized transaction RBI Ombudsman cheque bounce investment scam India",
     ],
     "legal_aid": [
         "free legal aid DLSA NALSA 15100 India",
@@ -103,6 +123,11 @@ INTENT_PATTERNS: Dict[str, str] = {
 }
 
 INTENT_PATTERNS.update({
+    "property_rent": r"landlord|tenant|rent|deposit|evict|eviction|lease|builder|possession|property sale|encroach|encroachment|boundary|parking|society dispute|maintenance dispute|unauthorized construction",
+    "family_personal": r"divorce|custody|alimony|maintenance|inheritance|will dispute|elder abuse|forced marriage|second marriage|live.?in|adoption|child neglect|marital dispute|dowry",
+    "workplace_issues": r"salary not paid|wrongful termination|terminated|overtime|pf|esi|workplace discrimination|blacklist|experience letter|bond|contract dispute|job fraud|fake job|resignation issue|internship exploitation",
+    "traffic_public": r"traffic challan|drunk driving|accident|hit and run|road rage|vehicle theft|driving license|insurance claim|pollution certificate|public nuisance|mact",
+    "financial_banking": r"loan harassment|credit score|cibil|bank fraud|unauthorized transaction|atm issue|insurance claim rejection|nbfc|cheque bounce|debt recovery|investment scam|upi scam|credit card fraud",
     "constitutional_rights": r"constitution|fundamental right|article 14|article 19|article 21|article 22|article 32|article 39a|equality before law|personal liberty|arrest rights|constitutional right",
     "criminal_law_basics": r"\bipc\b|\bbns\b|bharatiya nyaya sanhita|criminal law|robbery|extortion|wrongful restraint|wrongful confinement|self defence|private defence|assault|criminal force",
 })
@@ -431,12 +456,17 @@ def _filter_results_for_intent(results: list, intent: str) -> list:
     intent_categories = {
         "theft_complaint": {"theft", "fir_process"},
         "fir_process": {"fir_process", "theft"},
+        "property_rent": {"property_rent", "land_dispute", "consumer_rights"},
+        "family_personal": {"family_personal", "domestic_violence"},
+        "workplace_issues": {"workplace_issues", "wage_theft", "harassment"},
         "domestic_violence": {"domestic_violence"},
         "harassment": {"harassment", "cyber_crime"},
         "wage_theft": {"wage_theft"},
         "land_dispute": {"land_dispute"},
         "cyber_crime": {"cyber_crime"},
         "consumer_rights": {"consumer_rights"},
+        "traffic_public": {"traffic_public", "theft", "fir_process"},
+        "financial_banking": {"financial_banking", "cyber_crime", "consumer_rights"},
         "legal_aid": {"legal_aid"},
         "rti": {"rti"},
         "child_rights": {"child_rights"},
@@ -483,6 +513,21 @@ def _suggest_next_steps(intent: str, results: list, lang: str) -> list:
             "Ask for a free FIR copy after registration.",
             "If the police refuse, complain to the Superintendent of Police or seek court directions.",
         ],
+        "property_rent": [
+            "Collect the agreement, payment proof, bills, chats, and property papers.",
+            "Send a legal notice before filing if the dispute is about deposit, eviction, or possession.",
+            "File before the Civil Court, Rent Tribunal, or Consumer Court depending on the issue.",
+        ],
+        "family_personal": [
+            "Keep marriage, residence, income, and abuse-related records ready.",
+            "If there is violence or threats, approach the police or Protection Officer immediately.",
+            "For divorce, custody, maintenance, or inheritance issues, file the right petition in Family Court or Civil Court.",
+        ],
+        "workplace_issues": [
+            "Collect your offer letter, salary proof, emails, and internal complaint records.",
+            "Raise the issue internally first if appropriate, especially in workplace policy cases.",
+            "For salary, termination, or labour issues, send notice and approach the Labour Court or labour authority.",
+        ],
         "domestic_violence": [
             "If there is immediate danger, call 181 or 112 right away.",
             "Save messages, photos, medical papers, or witness details.",
@@ -497,6 +542,16 @@ def _suggest_next_steps(intent: str, results: list, lang: str) -> list:
             "Keep the bill, warranty, screenshots, and seller communication.",
             "Ask the seller for refund or replacement in writing.",
             "If unresolved, file a complaint on eDaakhil or before the District Consumer Forum.",
+        ],
+        "traffic_public": [
+            "Keep the FIR, challan, photos, insurance papers, and medical records if relevant.",
+            "Report accidents, vehicle theft, or public-safety issues to the police without delay.",
+            "For accident compensation, insurance disputes, or challan matters, approach MACT, the insurer, or the traffic authority.",
+        ],
+        "financial_banking": [
+            "Inform the bank or platform immediately and preserve statements, receipts, and messages.",
+            "If it is fraud, report to police or cybercrime authorities quickly.",
+            "Use the RBI Ombudsman, civil court, or cheque-bounce process depending on the dispute.",
         ],
         "legal_aid": [
             "Contact the District Legal Services Authority in your district.",
@@ -608,10 +663,22 @@ def _intent_guidance(intent: str, user_message: str, lang: str) -> str:
         return _fir_guidance(user_message, lang)
     if intent == "theft_complaint":
         return _theft_guidance(lang)
+    if intent == "property_rent":
+        return _property_rent_guidance(lang)
+    if intent == "family_personal":
+        return _family_personal_guidance(lang)
+    if intent == "workplace_issues":
+        return _workplace_issues_guidance(lang)
+    if intent == "domestic_violence":
+        return _domestic_violence_guidance(user_message, lang)
     if intent == "cyber_crime":
         return _cyber_guidance(lang)
     if intent == "consumer_rights":
         return _consumer_guidance(lang)
+    if intent == "traffic_public":
+        return _traffic_public_guidance(lang)
+    if intent == "financial_banking":
+        return _financial_banking_guidance(lang)
     if intent == "legal_aid":
         return _legal_aid_guidance(lang)
     if intent == "constitutional_rights":
@@ -663,6 +730,96 @@ def _theft_guidance(lang: str) -> str:
     )
 
 
+def _property_rent_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- एग्रीमेंट, भुगतान रसीद, बैंक रिकॉर्ड, चैट, फोटो और प्रॉपर्टी पेपर सुरक्षित रखें.\n"
+            "- डिपॉजिट, बेदखली, कब्जा या बिल्डर देरी जैसे मामलों में पहले legal notice भेजना उपयोगी होता है.\n"
+            "- मामला Civil Court, Rent Tribunal, या builder मामलों में Consumer Court में जा सकता है.\n\n"
+            "अगर आप चाहें, तो मैं property/rent dispute के लिए अगले कदम और जरूरी documents अलग से सूचीबद्ध कर सकता हूँ."
+        )
+    return (
+        "- Keep the agreement, payment proof, bank records, chats, photos, and property papers safely.\n"
+        "- In deposit, eviction, possession, or builder-delay disputes, a legal notice is often the first practical step.\n"
+        "- Depending on the issue, you may need to file before the Civil Court, Rent Tribunal, or Consumer Court.\n\n"
+        "If you want, I can list the exact documents and next steps for your property or rent issue."
+    )
+
+
+def _family_personal_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- शादी, आय, निवास, बच्चे, मेडिकल रिकॉर्ड, चैट और अन्य पारिवारिक दस्तावेज सुरक्षित रखें.\n"
+            "- अगर हिंसा, धमकी, या दहेज उत्पीड़न है, तो पुलिस या Protection Officer से तुरंत संपर्क करें.\n"
+            "- Divorce, custody, maintenance, inheritance, or will disputes आमतौर पर Family Court या Civil Court में जाते हैं.\n\n"
+            "अगर आप चाहें, तो मैं आपके family matter के हिसाब से where to file और documents needed बता सकता हूँ."
+        )
+    return (
+        "- Keep marriage, income, residence, child-related, medical, and communication records safely.\n"
+        "- If there is violence, threat, or dowry harassment, approach the police or Protection Officer immediately.\n"
+        "- Divorce, custody, maintenance, inheritance, and will disputes usually go to Family Court or Civil Court.\n\n"
+        "If you want, I can break this down into where to file and documents needed for your family matter."
+    )
+
+
+def _workplace_issues_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- Offer letter, contract, salary slips, bank statements, HR emails, PF/ESI records और complaint copies संभालकर रखें.\n"
+            "- Salary, termination, harassment, POSH, bond, या fake job मामलों में written proof बहुत महत्वपूर्ण है.\n"
+            "- Labour issues Labour Court या labour authority में जा सकते हैं, और POSH मामलों में ICC/LCC का रास्ता भी होता है.\n\n"
+            "अगर आप चाहें, तो मैं workplace issue के लिए exact forum और documents checklist दे सकता हूँ."
+        )
+    return (
+        "- Keep the offer letter, contract, salary slips, bank statements, HR emails, PF/ESI records, and complaint copies safely.\n"
+        "- Written proof is especially important in salary, termination, harassment, POSH, bond, and fake-job matters.\n"
+        "- Labour matters may go to the Labour Court or labour authority, while POSH complaints can go to the ICC or LCC.\n\n"
+        "If you want, I can give you the exact forum and document checklist for your workplace issue."
+    )
+
+
+def _domestic_violence_guidance(user_message: str, lang: str) -> str:
+    lower = user_message.lower()
+    asks_where = (
+        "where" in lower
+        or "file" in lower
+        or "complaint" in lower
+        or "report" in lower
+        or "case" in lower
+    )
+
+    if lang == "hi":
+        if asks_where:
+            return (
+                "- अगर तुरंत खतरा है, तो 181 या 112 पर अभी कॉल करें.\n"
+                "- आप नजदीकी पुलिस स्टेशन में शिकायत या FIR दर्ज करा सकती हैं.\n"
+                "- आप जिले के Protection Officer, महिला हेल्पलाइन, One Stop Centre, या Magistrate court के माध्यम से भी Domestic Violence Act के तहत राहत मांग सकती हैं.\n"
+                "- मैसेज, फोटो, मेडिकल रिकॉर्ड, और गवाह की जानकारी सुरक्षित रखें.\n\n"
+                "अगर आप चाहें, तो मैं घरेलू हिंसा शिकायत का draft भी तैयार करने में मदद कर सकता हूँ."
+            )
+        return (
+            "- अगर तुरंत खतरा है, तो 181 या 112 पर अभी कॉल करें.\n"
+            "- पुलिस, Protection Officer, या One Stop Centre से तुरंत मदद लें.\n"
+            "- मैसेज, फोटो, मेडिकल रिकॉर्ड, और गवाह की जानकारी सुरक्षित रखें.\n\n"
+            "अगर आप चाहें, तो मैं अगले कदम बहुत सरल भाषा में बता सकता हूँ."
+        )
+
+    if asks_where:
+        return (
+            "- If there is immediate danger, call 181 or 112 right away.\n"
+            "- You can go to the nearest police station to file a complaint or FIR.\n"
+            "- You can also approach the district Protection Officer, Women's Helpline, One Stop Centre, or the Magistrate court for relief under the Domestic Violence Act.\n"
+            "- Keep messages, photos, medical records, and witness details safely.\n\n"
+            "If you want, I can also help draft a domestic violence complaint."
+        )
+    return (
+        "- If there is immediate danger, call 181 or 112 right away.\n"
+        "- Reach out to the police, Protection Officer, or a One Stop Centre for help.\n"
+        "- Keep messages, photos, medical records, and witness details safely.\n\n"
+        "If you want, I can explain the next steps in simple language."
+    )
+
+
 def _cyber_guidance(lang: str) -> str:
     if lang == "hi":
         return (
@@ -688,6 +845,38 @@ def _consumer_guidance(lang: str) -> str:
         "- Keep the bill, warranty, and seller communication safely.\n"
         "- First ask for a refund or replacement in writing.\n"
         "- If unresolved, file a complaint on eDaakhil or before the District Consumer Forum."
+    )
+
+
+def _traffic_public_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- Driving licence, RC, insurance, challan/FIR, फोटो, मेडिकल रिकॉर्ड और repair bills सुरक्षित रखें.\n"
+            "- Accident, hit and run, vehicle theft, या public nuisance मामलों में पुलिस को जल्दी सूचना दें.\n"
+            "- Compensation या insurance dispute के लिए MACT, insurer, या traffic authority के सामने जाना पड़ सकता है.\n\n"
+            "अगर आप चाहें, तो मैं traffic या accident matter के लिए step-by-step प्रक्रिया बता सकता हूँ."
+        )
+    return (
+        "- Keep the driving licence, RC, insurance papers, challan/FIR, photos, medical records, and repair bills safely.\n"
+        "- Report accidents, hit and run, vehicle theft, or public-safety issues to the police quickly.\n"
+        "- Compensation or insurance disputes may need to go before MACT, the insurer, or the traffic authority.\n\n"
+        "If you want, I can explain the traffic or accident process step by step."
+    )
+
+
+def _financial_banking_guidance(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "- बैंक statements, transaction proof, loan papers, cheque copy, bounce memo, SMS/email records, और policy papers सुरक्षित रखें.\n"
+            "- Fraud या unauthorized transaction में तुरंत bank को inform करें और जरूरत हो तो police/cyber complaint करें.\n"
+            "- Bank grievance, RBI Ombudsman, civil court, या cheque bounce process अलग-अलग मामलों में उपयोगी हो सकते हैं.\n\n"
+            "अगर आप चाहें, तो मैं banking या financial issue के लिए सही forum और documents checklist दे सकता हूँ."
+        )
+    return (
+        "- Keep bank statements, transaction proof, loan papers, cheque copy, bounce memo, SMS/email records, and policy papers safely.\n"
+        "- In fraud or unauthorized transaction cases, inform the bank immediately and file a police or cyber complaint if needed.\n"
+        "- Depending on the dispute, you may need the bank grievance process, RBI Ombudsman, civil court, or cheque-bounce procedure.\n\n"
+        "If you want, I can give you the right forum and documents checklist for your banking or financial issue."
     )
 
 

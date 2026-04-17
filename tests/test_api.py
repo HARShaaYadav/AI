@@ -151,6 +151,24 @@ def test_generate_response_missing_gold_query_gets_direct_fir_guidance(monkeypat
     assert "Please describe your issue in detail" not in result["response"]
 
 
+def test_generate_response_domestic_violence_where_to_file_gets_direct_guidance(monkeypatch):
+    """Domestic violence filing questions should not fall back to the generic category list."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="Where to file domestic violence case",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert result["intent"] == "domestic_violence"
+    assert "nearest police station" in result["response"].lower() or "protection officer" in result["response"].lower()
+    assert "Please describe your issue in detail" not in result["response"]
+
+
 def test_generate_response_legal_aid_without_search_uses_intent_fallback(monkeypatch):
     """Known intents should return relevant help even without retrieval context."""
     monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])
@@ -200,6 +218,18 @@ def test_detect_intent_for_constitutional_rights():
     """Basic constitutional-rights questions should be recognized."""
     result = llm.detect_intent("What are my rights under Article 21 and Article 22?")
     assert result["intent"] == "constitutional_rights"
+
+
+def test_detect_intent_for_property_rent():
+    """Property and rent wording should map to the new backend category."""
+    result = llm.detect_intent("My landlord is not returning my security deposit")
+    assert result["intent"] == "property_rent"
+
+
+def test_detect_intent_for_workplace_issues():
+    """Workplace disputes should map to the new backend category."""
+    result = llm.detect_intent("My salary was not paid and HR ignored my emails")
+    assert result["intent"] == "workplace_issues"
 
 
 def test_backend_openai_payload_uses_shared_model_and_prompt(monkeypatch):
