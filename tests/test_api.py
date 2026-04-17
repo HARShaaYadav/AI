@@ -133,6 +133,24 @@ def test_generate_response_fir_query_without_strong_search_still_answers(monkeyp
     assert "Please describe your issue in detail" not in result["response"]
 
 
+def test_generate_response_missing_gold_query_gets_direct_fir_guidance(monkeypatch):
+    """Natural theft wording like 'missing gold where to go' should map to FIR guidance."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="I have to file report for missing gold where to go",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert result["intent"] == "fir_process"
+    assert "nearest police station" in result["response"].lower() or "zero fir" in result["response"].lower()
+    assert "Please describe your issue in detail" not in result["response"]
+
+
 def test_generate_response_legal_aid_without_search_uses_intent_fallback(monkeypatch):
     """Known intents should return relevant help even without retrieval context."""
     monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])

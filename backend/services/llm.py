@@ -88,7 +88,7 @@ INTENT_FALLBACK_QUERIES = {
 }
 
 INTENT_PATTERNS: Dict[str, str] = {
-    "theft_complaint": r"chori|theft|stolen|चोरी|phone|फ़ोन|snatch|rob|loot|लूट",
+    "theft_complaint": r"chori|theft|stolen|missing gold|missing jewelry|missing jewellery|gold missing|jewel(?:lery)?|jewellery|chain|ring|necklace|wallet|phone|फ़ोन|snatch|rob|loot|लूट",
     "domestic_violence": r"violen|hinsa|हिंसा|मार|domestic|abuse|beat|पीट|dv|498",
     "harassment": r"harass|posh|उत्पीड़|stalking|eve.?teas|molestation|छेड़",
     "wage_theft": r"wage|vetan|वेतन|salary|pay|भुगतान|mazduri|मज़दूरी|labour|labor",
@@ -143,6 +143,15 @@ def detect_intent(user_message: str) -> Dict[str, Any]:
 
     lower = user_message.lower()
     urgency = any(kw in lower for kw in EMERGENCY_KEYWORDS)
+
+    if _looks_like_theft_or_fir_query(lower):
+        detected_lang = "hi" if any("\u0900" <= c <= "\u097F" for c in user_message) else "en"
+        return {
+            "intent": "fir_process",
+            "language": detected_lang,
+            "urgency": urgency,
+            "summary": user_message[:100],
+        }
 
     detected_intent = "general_legal_query"
     for intent, pattern in INTENT_PATTERNS.items():
@@ -216,7 +225,7 @@ def generate_response(
             else:
                 reply = _intent_or_generic_response(user_message, intent, detected_lang)
 
-        if memories:
+        if memories and _should_include_memory_note(intent, conversation):
             memory_note = _format_memory_note(memories, detected_lang)
             reply = memory_note + "\n\n" + reply
 
@@ -538,7 +547,11 @@ def _suggest_next_steps(intent: str, results: list, lang: str) -> list:
 
 def _detect_specific_question(user_message: str, lang: str = "en") -> str:
     lower = user_message.lower()
-    if ("where" in lower and "fir" in lower) or ("report" in lower and "fir" in lower):
+    if (
+        ("where" in lower and "fir" in lower)
+        or ("report" in lower and "fir" in lower)
+        or _looks_like_theft_or_fir_query(lower)
+    ):
         return (
             "आप FIR नजदीकी किसी भी पुलिस स्टेशन में दर्ज करा सकते हैं। अगर घटना किसी दूसरे इलाके की है, तो भी Zero FIR दर्ज हो सकती है।"
             if lang == "hi"
@@ -727,6 +740,8 @@ def _criminal_law_basics_guidance(lang: str) -> str:
 
 
 def _is_vague_question(user_message: str) -> bool:
+    if _looks_like_theft_or_fir_query(user_message.lower()):
+        return False
     tokens = re.findall(r"\w+", user_message.lower())
     if len(tokens) <= 4:
         return True
@@ -777,6 +792,44 @@ def _format_memory_note(memories: list, lang: str) -> str:
         note += f" *{case}*,"
     note = note.rstrip(",") + "*)*"
     return note
+
+
+def _should_include_memory_note(intent: str, conversation: list) -> bool:
+    return bool(conversation) or intent != "general_legal_query"
+
+
+def _looks_like_theft_or_fir_query(lower: str) -> bool:
+    has_where_to_go = ("where to go" in lower) or ("where do i go" in lower) or ("kaha" in lower and "jana" in lower)
+    has_reporting = (
+        "file report" in lower
+        or "report" in lower
+        or "file complaint" in lower
+        or "complaint" in lower
+        or "fir" in lower
+    )
+    has_missing_property = any(
+        phrase in lower
+        for phrase in (
+            "missing gold",
+            "gold missing",
+            "missing jewellery",
+            "missing jewelry",
+            "stolen gold",
+            "stolen jewellery",
+            "stolen jewelry",
+            "gold chain",
+            "ring",
+            "necklace",
+            "wallet",
+            "phone",
+            "jewellery",
+            "jewelry",
+            "stolen",
+            "theft",
+            "chori",
+        )
+    )
+    return (has_reporting and has_missing_property) or (has_where_to_go and has_missing_property)
 
 
 def _disclaimer(lang: str) -> str:
