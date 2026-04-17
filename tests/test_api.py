@@ -213,6 +213,75 @@ def test_generate_response_prefers_requested_hindi_language(monkeypatch):
     assert "यदि कोई आपकी भूमि" in result["response"] or "भूमि विवाद" in result["response"]
 
 
+def test_generate_response_filters_mixed_results_to_detected_intent(monkeypatch):
+    """Land-dispute answers should not include unrelated cyber-crime retrieval hits."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [
+        {
+            "content": "If someone illegally occupies your land or property, file a complaint at the local police station or approach the Revenue Court (Tehsildar).",
+            "category": "land_dispute",
+            "score": 0.88,
+        },
+        {
+            "content": "In cyber and online crime cases preserve screenshots, transaction receipts, bank or UPI statements, and complaint acknowledgement from the cyber portal.",
+            "category": "cyber_crime",
+            "score": 0.83,
+        },
+    ])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+    monkeypatch.setattr(llm, "OPENAI_API_KEY", "")
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="land dispute",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert "revenue court" in result["response"].lower() or "land" in result["response"].lower()
+    assert "cyber" not in result["response"].lower()
+    assert "upi" not in result["response"].lower()
+
+
+def test_generate_response_primary_llm_receives_only_relevant_context(monkeypatch):
+    """Primary LLM context should be narrowed to the detected intent when matches exist."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [
+        {
+            "content": "If someone illegally occupies your land or property, file a complaint at the local police station or approach the Revenue Court (Tehsildar).",
+            "category": "land_dispute",
+            "score": 0.88,
+        },
+        {
+            "content": "In cyber and online crime cases preserve screenshots, transaction receipts, bank or UPI statements, and complaint acknowledgement from the cyber portal.",
+            "category": "cyber_crime",
+            "score": 0.83,
+        },
+    ])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+    monkeypatch.setattr(llm, "_primary_llm_available", lambda: True)
+
+    captured = {}
+
+    def fake_generate(user_message, context, lang, conversation):
+        captured["context"] = context
+        return "Filtered response"
+
+    monkeypatch.setattr(llm, "_generate_with_primary_llm", fake_generate)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="land dispute",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert result["response"].startswith("Filtered response")
+    assert "[Land_Dispute]" in captured["context"]
+    assert "cyber" not in captured["context"].lower()
+    assert "upi" not in captured["context"].lower()
+
+
 def test_generate_response_legal_aid_without_search_uses_intent_fallback(monkeypatch):
     """Known intents should return relevant help even without retrieval context."""
     monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])

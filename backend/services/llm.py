@@ -227,26 +227,27 @@ def generate_response(
         legal_results = _search_legal_knowledge_with_fallback(user_message, intent, top_k=6)
         memories = get_user_memory(user_id, top_k=2)
 
-        strong_results = [r for r in legal_results if r["score"] >= 0.25]
         intent_results = _filter_results_for_intent(legal_results, intent)
+        strong_results = [r for r in legal_results if r["score"] >= 0.25]
+        strong_intent_results = [r for r in intent_results if r["score"] >= 0.25]
+        response_results = strong_intent_results or intent_results or strong_results
 
         if _primary_llm_available():
             # Use the configured primary LLM so Vapi and backend text chat stay aligned.
-            context_str = "\n".join([f"[{r['category'].title()}] {r['content']}" for r in legal_results if r['score'] > 0.2])
+            context_source = response_results or [r for r in legal_results if r["score"] > 0.2]
+            context_str = "\n".join(
+                [f"[{r['category'].title()}] {r['content']}" for r in context_source if r["score"] > 0.2]
+            )
             reply = _generate_with_primary_llm(user_message, context_str, detected_lang, conversation)
             if not reply:
                 # Fallback if Gemini fails
-                if strong_results:
-                    reply = _build_grounded_response(user_message, strong_results, intent, detected_lang)
-                elif intent_results:
-                    reply = _build_grounded_response(user_message, intent_results, intent, detected_lang)
+                if response_results:
+                    reply = _build_grounded_response(user_message, response_results, intent, detected_lang)
                 else:
                     reply = _intent_or_generic_response(user_message, intent, detected_lang)
         else:
-            if strong_results:
-                reply = _build_grounded_response(user_message, strong_results, intent, detected_lang)
-            elif intent_results:
-                reply = _build_grounded_response(user_message, intent_results, intent, detected_lang)
+            if response_results:
+                reply = _build_grounded_response(user_message, response_results, intent, detected_lang)
             else:
                 reply = _intent_or_generic_response(user_message, intent, detected_lang)
 
