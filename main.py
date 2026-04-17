@@ -180,11 +180,19 @@ async def vapi_webhook(request: Request):
         params = fn.get("parameters", {})
 
         if fn_name == "query_legal":
-            from backend.services.llm import detect_intent, get_retrieval_candidates
+            from backend.services.llm import (
+                _filter_results_for_intent,
+                _localize_legal_text,
+                _localize_topic_label,
+                detect_intent,
+                get_retrieval_candidates,
+            )
             text = params.get("text", "")
             if not text:
                 return JSONResponse({"result": "Please tell me your problem."})
 
+            metadata = message.get("call", {}).get("metadata", {})
+            language = metadata.get("language", "en")
             intent = detect_intent(text).get("intent", "general_legal_query")
             merged = {}
             for candidate in get_retrieval_candidates(text, intent):
@@ -194,10 +202,13 @@ async def vapi_webhook(request: Request):
                     if not existing or result.get("score", 0) > existing.get("score", 0):
                         merged[key] = result
 
-            results = sorted(merged.values(), key=lambda item: item.get("score", 0), reverse=True)[:4]
+            all_results = sorted(merged.values(), key=lambda item: item.get("score", 0), reverse=True)
+            filtered_results = _filter_results_for_intent(all_results, intent)
+            strong_filtered = [r for r in filtered_results if r.get("score", 0) > 0.2]
+            results = (strong_filtered or filtered_results or all_results)[:4]
             if results:
                 context = "\n\n".join(
-                    f"[{r['category'].replace('_',' ').title()}]: {r['content']}"
+                    f"[{_localize_topic_label(r['category'], language)}]: {_localize_legal_text(r['content'], language)}"
                     for r in results if r["score"] > 0.2
                 )
                 return JSONResponse({"result": context or "No specific information found."})

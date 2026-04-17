@@ -1045,6 +1045,14 @@ def _translate_legal_english_to_hindi(text: str) -> str:
          "पहले लिखित रूप में रिफंड या रिप्लेसमेंट मांगें।"),
         ("If unresolved, file a complaint on eDaakhil or before the District Consumer Forum.",
          "समाधान न मिलने पर eDaakhil या जिला उपभोक्ता फोरम में शिकायत करें।"),
+        ("Every worker has the right to receive their full wages on time under the Payment of Wages Act.",
+         "à¤¹à¤° à¤•à¤°à¥à¤®à¤šà¤¾à¤°à¥€ à¤•à¥‹ Payment of Wages Act à¤•à¥‡ à¤¤à¤¹à¤¤ à¤¸à¤®à¤¯ à¤ªà¤° à¤ªà¥‚à¤°à¤¾ à¤µà¥‡à¤¤à¤¨ à¤ªà¤¾à¤¨à¥‡ à¤•à¤¾ à¤…à¤§à¤¿à¤•à¤¾à¤° à¤¹à¥ˆà¥¤"),
+        ("If your employer withholds your salary, file a complaint with the Labour Commissioner in your district.",
+         "à¤…à¤—à¤° à¤†à¤ªà¤•à¥‡ à¤¨à¤¿à¤¯à¥‹à¤•à¥à¤¤à¤¾ à¤¨à¥‡ à¤µà¥‡à¤¤à¤¨ à¤°à¥‹à¤• à¤²à¤¿à¤¯à¤¾ à¤¹à¥ˆ, à¤¤à¥‹ à¤…à¤ªà¤¨à¥‡ à¤œà¤¿à¤²à¥‡ à¤•à¥‡ Labour Commissioner à¤•à¥‡ à¤ªà¤¾à¤¸ à¤¶à¤¿à¤•à¤¾à¤¯à¤¤ à¤•à¤°à¥‡à¤‚à¥¤"),
+        ("This is free and you do not need a lawyer.",
+         "à¤¯à¤¹ à¤ªà¥à¤°à¤•à¥à¤°à¤¿à¤¯à¤¾ à¤®à¥à¤«à¥à¤¤ à¤¹à¥ˆ à¤”à¤° à¤‡à¤¸à¤•à¥‡ à¤²à¤¿à¤ à¤µà¤•à¥€à¤² à¤•à¥€ à¤œà¤°à¥‚à¤°à¤¤ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆà¥¤"),
+        ("Migrant workers have the same rights as local workers.",
+         "à¤ªà¥à¤°à¤µà¤¾à¤¸à¥€ à¤®à¤œà¤¦à¥‚à¤°à¥‹à¤‚ à¤•à¥‹ à¤­à¥€ à¤¸à¥à¤¥à¤¾à¤¨à¥€à¤¯ à¤®à¤œà¤¦à¥‚à¤°à¥‹à¤‚ à¤œà¥ˆà¤¸à¥‡ à¤¹à¥€ à¤…à¤§à¤¿à¤•à¤¾à¤° à¤®à¤¿à¤²à¤¤à¥‡ à¤¹à¥ˆà¤‚à¥¤"),
     ]
 
     for src, dest in replacements:
@@ -1063,6 +1071,101 @@ def _translate_legal_english_to_hindi(text: str) -> str:
         ("Consumer Court", "उपभोक्ता न्यायालय"),
         ("Civil Court", "सिविल कोर्ट"),
         ("Rent Tribunal", "किराया न्यायाधिकरण"),
+    ]
+    for src, dest in generic_terms:
+        translated = re.sub(rf"\b{re.escape(src)}\b", dest, translated, flags=re.IGNORECASE)
+    return translated
+
+
+def _translate_legal_english_to_hindi(text: str) -> str:
+    translated = text.strip()
+    replacements = [
+        (
+            "If someone illegally occupies your land or property, file a complaint at the local police station or approach the Revenue Court (Tehsildar).",
+            "\u092f\u0926\u093f \u0915\u094b\u0908 \u0906\u092a\u0915\u0940 \u092d\u0942\u092e\u093f \u092f\u093e \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u092a\u0930 \u0905\u0935\u0948\u0927 \u0915\u092c\u094d\u091c\u093e \u0915\u0930 \u0932\u0947, \u0924\u094b \u0938\u094d\u0925\u093e\u0928\u0940\u092f \u092a\u0941\u0932\u093f\u0938 \u0938\u094d\u091f\u0947\u0936\u0928 \u092e\u0947\u0902 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930\u0947\u0902 \u092f\u093e \u0930\u093e\u091c\u0938\u094d\u0935 \u0928\u094d\u092f\u093e\u092f\u093e\u0932\u092f (\u0924\u0939\u0938\u0940\u0932\u0926\u093e\u0930) \u0938\u0947 \u0938\u0902\u092a\u0930\u094d\u0915 \u0915\u0930\u0947\u0902\u0964",
+        ),
+        (
+            "Keep all documents like sale deed, property tax receipts, and Aadhaar-linked land records as evidence.",
+            "\u092c\u093f\u0915\u094d\u0930\u0940 \u0935\u093f\u0932\u0947\u0916, \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0915\u0930 \u0930\u0938\u0940\u0926\u0947\u0902 \u0914\u0930 \u0906\u0927\u093e\u0930 \u0938\u0947 \u091c\u0941\u0921\u093c\u0947 \u092d\u0942\u092e\u093f \u0930\u093f\u0915\u0949\u0930\u094d\u0921 \u091c\u0948\u0938\u0947 \u0926\u0938\u094d\u0924\u093e\u0935\u0947\u091c \u0938\u092c\u0942\u0924 \u0915\u0947 \u0930\u0942\u092a \u092e\u0947\u0902 \u0938\u0941\u0930\u0915\u094d\u0937\u093f\u0924 \u0930\u0916\u0947\u0902\u0964",
+        ),
+        (
+            "You can also file a civil suit for possession.",
+            "\u0906\u092a \u0915\u092c\u094d\u091c\u093e \u0935\u093e\u092a\u0938 \u092a\u093e\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0938\u093f\u0935\u093f\u0932 \u092e\u0941\u0915\u0926\u092e\u093e \u092d\u0940 \u0926\u093e\u092f\u0930 \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902\u0964",
+        ),
+        (
+            "To file an FIR for theft, provide: what was stolen, when it happened, where it happened, and any details about the suspect.",
+            "\u091a\u094b\u0930\u0940 \u0915\u0940 \u090f\u092b\u0906\u0908\u0906\u0930 \u0915\u0947 \u0932\u093f\u090f \u092c\u0924\u093e\u090f\u0902: \u0915\u094d\u092f\u093e \u091a\u094b\u0930\u0940 \u0939\u0941\u0908, \u0915\u092c \u0939\u0941\u0908, \u0915\u0939\u093e\u0901 \u0939\u0941\u0908, \u0914\u0930 \u0906\u0930\u094b\u092a\u0940 \u0915\u0947 \u092c\u093e\u0930\u0947 \u092e\u0947\u0902 \u091c\u094b \u092d\u0940 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0939\u094b\u0964",
+        ),
+        (
+            "You can also file an e-FIR online in many states.",
+            "\u0915\u0908 \u0930\u093e\u091c\u094d\u092f\u094b\u0902 \u092e\u0947\u0902 \u0906\u092a \u0911\u0928\u0932\u093e\u0907\u0928 \u0908-\u090f\u092b\u0906\u0908\u0906\u0930 \u092d\u0940 \u0926\u0930\u094d\u091c \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902\u0964",
+        ),
+        (
+            "If police refuse to register your FIR, complain to the Superintendent of Police or file a complaint in court under Section 156(3) CrPC.",
+            "\u0905\u0917\u0930 \u092a\u0941\u0932\u093f\u0938 \u090f\u092b\u0906\u0908\u0906\u0930 \u0926\u0930\u094d\u091c \u0915\u0930\u0928\u0947 \u0938\u0947 \u092e\u0928\u093e \u0915\u0930\u0947, \u0924\u094b \u092a\u0941\u0932\u093f\u0938 \u0905\u0927\u0940\u0915\u094d\u0937\u0915 \u0938\u0947 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930\u0947\u0902 \u092f\u093e \u0927\u093e\u0930\u093e 156(3) \u0938\u0940\u0906\u0930\u092a\u0940\u0938\u0940 \u0915\u0947 \u0924\u0939\u0924 \u0905\u0926\u093e\u0932\u0924 \u092e\u0947\u0902 \u0906\u0935\u0947\u0926\u0928 \u0926\u0947\u0902\u0964",
+        ),
+        (
+            "An FIR (First Information Report) is the first step in reporting a crime.",
+            "\u090f\u092b\u0906\u0908\u0906\u0930 (\u092a\u094d\u0930\u0925\u092e \u0938\u0942\u091a\u0928\u093e \u0930\u093f\u092a\u094b\u0930\u094d\u091f) \u0905\u092a\u0930\u093e\u0927 \u0915\u0940 \u0930\u093f\u092a\u094b\u0930\u094d\u091f \u0915\u0930\u0928\u0947 \u0915\u093e \u092a\u0939\u0932\u093e \u0915\u0926\u092e \u0939\u0948\u0964",
+        ),
+        (
+            "Save screenshots, transaction IDs, phone numbers, and links.",
+            "\u0938\u094d\u0915\u094d\u0930\u0940\u0928\u0936\u0949\u091f, \u091f\u094d\u0930\u093e\u0902\u091c\u0948\u0915\u094d\u0936\u0928 \u0906\u0908\u0921\u0940, \u092b\u094b\u0928 \u0928\u0902\u092c\u0930 \u0914\u0930 \u0932\u093f\u0902\u0915 \u0938\u0941\u0930\u0915\u094d\u0937\u093f\u0924 \u0930\u0916\u0947\u0902\u0964",
+        ),
+        (
+            "Report quickly at cybercrime.gov.in or call 1930.",
+            "\u091c\u0932\u094d\u0926\u0940 \u0938\u0947 cybercrime.gov.in \u092a\u0930 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930\u0947\u0902 \u092f\u093e 1930 \u092a\u0930 \u0915\u0949\u0932 \u0915\u0930\u0947\u0902\u0964",
+        ),
+        (
+            "If money was lost, also file an FIR or police complaint.",
+            "\u0905\u0917\u0930 \u092a\u0948\u0938\u0947 \u0917\u090f \u0939\u0948\u0902, \u0924\u094b \u090f\u092b\u0906\u0908\u0906\u0930 \u092f\u093e \u092a\u0941\u0932\u093f\u0938 \u0936\u093f\u0915\u093e\u092f\u0924 \u092d\u0940 \u0926\u0930\u094d\u091c \u0915\u0930\u0947\u0902\u0964",
+        ),
+        (
+            "Keep the bill, warranty, and seller communication safely.",
+            "\u092c\u093f\u0932, \u0935\u093e\u0930\u0902\u091f\u0940 \u0914\u0930 \u0935\u093f\u0915\u094d\u0930\u0947\u0924\u093e \u0938\u0947 \u0939\u0941\u0908 \u092c\u093e\u0924\u091a\u0940\u0924 \u0938\u0941\u0930\u0915\u094d\u0937\u093f\u0924 \u0930\u0916\u0947\u0902\u0964",
+        ),
+        (
+            "First ask for a refund or replacement in writing.",
+            "\u092a\u0939\u0932\u0947 \u0932\u093f\u0916\u093f\u0924 \u0930\u0942\u092a \u092e\u0947\u0902 \u0930\u093f\u092b\u0902\u0921 \u092f\u093e \u0930\u093f\u092a\u094d\u0932\u0947\u0938\u092e\u0947\u0902\u091f \u092e\u093e\u0902\u0917\u0947\u0902\u0964",
+        ),
+        (
+            "If unresolved, file a complaint on eDaakhil or before the District Consumer Forum.",
+            "\u0938\u092e\u093e\u0927\u093e\u0928 \u0928 \u092e\u093f\u0932\u0928\u0947 \u092a\u0930 eDaakhil \u092f\u093e \u091c\u093f\u0932\u093e \u0909\u092a\u092d\u094b\u0915\u094d\u0924\u093e \u092b\u094b\u0930\u092e \u092e\u0947\u0902 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930\u0947\u0902\u0964",
+        ),
+        (
+            "Every worker has the right to receive their full wages on time under the Payment of Wages Act.",
+            "\u0939\u0930 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u0915\u094b Payment of Wages Act \u0915\u0947 \u0924\u0939\u0924 \u0938\u092e\u092f \u092a\u0930 \u092a\u0942\u0930\u093e \u0935\u0947\u0924\u0928 \u092a\u093e\u0928\u0947 \u0915\u093e \u0905\u0927\u093f\u0915\u093e\u0930 \u0939\u0948\u0964",
+        ),
+        (
+            "If your employer withholds your salary, file a complaint with the Labour Commissioner in your district.",
+            "\u0905\u0917\u0930 \u0906\u092a\u0915\u0947 \u0928\u093f\u092f\u094b\u0915\u094d\u0924\u093e \u0928\u0947 \u0935\u0947\u0924\u0928 \u0930\u094b\u0915 \u0932\u093f\u092f\u093e \u0939\u0948, \u0924\u094b \u0905\u092a\u0928\u0947 \u091c\u093f\u0932\u0947 \u0915\u0947 Labour Commissioner \u0915\u0947 \u092a\u093e\u0938 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930\u0947\u0902\u0964",
+        ),
+        (
+            "This is free and you do not need a lawyer.",
+            "\u092f\u0939 \u092a\u094d\u0930\u0915\u094d\u0930\u093f\u092f\u093e \u092e\u0941\u092b\u094d\u0924 \u0939\u0948 \u0914\u0930 \u0907\u0938\u0915\u0947 \u0932\u093f\u090f \u0935\u0915\u0940\u0932 \u0915\u0940 \u091c\u0930\u0942\u0930\u0924 \u0928\u0939\u0940\u0902 \u0939\u0948\u0964",
+        ),
+        (
+            "Migrant workers have the same rights as local workers.",
+            "\u092a\u094d\u0930\u0935\u093e\u0938\u0940 \u092e\u091c\u0926\u0942\u0930\u094b\u0902 \u0915\u094b \u092d\u0940 \u0938\u094d\u0925\u093e\u0928\u0940\u092f \u092e\u091c\u0926\u0942\u0930\u094b\u0902 \u091c\u0948\u0938\u0947 \u0939\u0940 \u0905\u0927\u093f\u0915\u093e\u0930 \u092e\u093f\u0932\u0924\u0947 \u0939\u0948\u0902\u0964",
+        ),
+    ]
+
+    for src, dest in replacements:
+        translated = translated.replace(src, dest)
+
+    generic_terms = [
+        ("land dispute", "\u092d\u0942\u092e\u093f \u0935\u093f\u0935\u093e\u0926"),
+        ("property and rent issues", "\u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0914\u0930 \u0915\u093f\u0930\u093e\u092f\u093e \u0935\u093f\u0935\u093e\u0926"),
+        ("property", "\u0938\u0902\u092a\u0924\u094d\u0924\u093f"),
+        ("land", "\u092d\u0942\u092e\u093f"),
+        ("complaint", "\u0936\u093f\u0915\u093e\u092f\u0924"),
+        ("police station", "\u092a\u0941\u0932\u093f\u0938 \u0938\u094d\u091f\u0947\u0936\u0928"),
+        ("civil suit", "\u0938\u093f\u0935\u093f\u0932 \u092e\u0941\u0915\u0926\u092e\u093e"),
+        ("evidence", "\u0938\u092c\u0942\u0924"),
+        ("documents", "\u0926\u0938\u094d\u0924\u093e\u0935\u0947\u091c"),
+        ("Consumer Court", "\u0909\u092a\u092d\u094b\u0915\u094d\u0924\u093e \u0928\u094d\u092f\u093e\u092f\u093e\u0932\u092f"),
+        ("Civil Court", "\u0938\u093f\u0935\u093f\u0932 \u0915\u094b\u0930\u094d\u091f"),
+        ("Rent Tribunal", "\u0915\u093f\u0930\u093e\u092f\u093e \u0928\u094d\u092f\u093e\u092f\u093e\u0927\u093f\u0915\u0930\u0923"),
     ]
     for src, dest in generic_terms:
         translated = re.sub(rf"\b{re.escape(src)}\b", dest, translated, flags=re.IGNORECASE)
