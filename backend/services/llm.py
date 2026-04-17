@@ -9,7 +9,14 @@ import os
 import requests
 from typing import Dict, List, Any, Optional
 
-from backend.config import SUPPORTED_LANGUAGES, EMERGENCY_KEYWORDS
+from backend.config import (
+    SUPPORTED_LANGUAGES,
+    EMERGENCY_KEYWORDS,
+    OPENAI_API_KEY,
+    PRIMARY_LLM_MODEL,
+    PRIMARY_LLM_TEMPERATURE,
+)
+from backend.prompts import get_shared_system_prompt
 from backend.services.qdrant import search_legal_knowledge, get_user_memory
 
 logger = logging.getLogger(__name__)
@@ -189,10 +196,10 @@ def generate_response(
         strong_results = [r for r in legal_results if r["score"] >= 0.25]
         intent_results = _filter_results_for_intent(legal_results, intent)
 
-        if GEMINI_API_KEY:
-            # Use Gemini LLM to synthesize a tailored response based on RAG context
+        if _primary_llm_available():
+            # Use the configured primary LLM so Vapi and backend text chat stay aligned.
             context_str = "\n".join([f"[{r['category'].title()}] {r['content']}" for r in legal_results if r['score'] > 0.2])
-            reply = _generate_with_gemini(user_message, context_str, detected_lang, conversation)
+            reply = _generate_with_primary_llm(user_message, context_str, detected_lang, conversation)
             if not reply:
                 # Fallback if Gemini fails
                 if strong_results:
@@ -235,38 +242,74 @@ def generate_response(
         }
 
 
-def _generate_with_gemini(user_message: str, context: str, lang: str, conversation: list) -> str:
-    """Make REST API call to Gemini to generate natural conversational text using context"""
-    language_map = {"hi": "Hindi", "en": "English", "ta": "Tamil", "bn": "Bengali", "mr": "Marathi", "te": "Telugu"}
-    lang_name = language_map.get(lang, "English")
-    
-    system_prompt = (
-        f"You are NyayaVoice, a helpful and empathetic legal aid assistant in India. "
-        f"Always answer clearly and directly in {lang_name}. Use simple, jargon-free everyday language. "
-        f"Use the following 'Legal Context' found from our database to inform your answer. "
-        f"You can explain basic constitutional rights, arrest rights, legal aid, and criminal law in plain language. "
-        f"If the user refers to IPC, you may explain the older IPC wording and the current Bharatiya Nyaya Sanhita wording where useful. "
-        f"Answer the user's exact question first. Do not give a generic category overview when the question is specific. "
-        f"If the context is incomplete, say what is known, what is uncertain, and ask one short follow-up question. "
-        f"If the context doesn't contain the exact answer, use your general knowledge of Indian Law, "
-        f"but advise the user to consult a lawyer. Do not hallucinate section numbers unless certain.\n"
-    )
-    
-    prompt = f"System: {system_prompt}\n\nLegal Context:\n{context}\n\n"
-    
-    # Add recent conversation history for context
+def _primary_llm_available() -> bool:
+    return bool(OPENAI_API_KEY)
+
+
+def _generate_with_primary_llm(user_message: str, context: str, lang: str, conversation: list) -> str:
+    if OPENAI_API_KEY:
+        return _generate_with_openai(user_message, context, lang, conversation)
+    return ""
+
+
+def _build_llm_messages(user_message: str, context: str, lang: str, conversation: list) -> list:
+    messages = [{"role": "system", "content": get_shared_system_prompt(lang)}]
+
     for msg in conversation[-4:]:
-        role = "User" if msg.get("role") == "user" else "NyayaVoice"
-        prompt += f"{role}: {msg.get('text')}\n"
-        
-    prompt += f"User: {user_message}\nNyayaVoice:"
+        role = msg.get("role")
+        if role in ("user", "assistant") and msg.get("text"):
+            messages.append({"role": role, "content": msg["text"]})
+
+    context_block = context.strip() if context.strip() else "No additional legal context retrieved."
+    messages.append({
+        "role": "user",
+        "content": (
+            f"Legal Context:\n{context_block}\n\n"
+            f"Current User Message:\n{user_message}\n\n"
+            "Answer using the legal context when it is relevant. "
+            "If the context is not enough, say so clearly instead of making up precise legal details."
+        ),
+    })
+    return messages
+
+
+def _generate_with_openai(user_message: str, context: str, lang: str, conversation: list) -> str:
+    """Make REST API call to OpenAI using the shared prompt and primary model."""
+    url = "https://api.openai.com/v1/chat/completions"
+    payload = {
+        "model": PRIMARY_LLM_MODEL,
+        "messages": _build_llm_messages(user_message, context, lang, conversation),
+        "temperature": PRIMARY_LLM_TEMPERATURE,
+    }
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        logger.error(f"OpenAI generation failed: {e}")
+        return ""
+
+
+def _generate_with_gemini(user_message: str, context: str, lang: str, conversation: list) -> str:
+    """Fallback Gemini path using the same shared system prompt."""
+    messages = _build_llm_messages(user_message, context, lang, conversation)
+    prompt_parts = [f"System: {messages[0]['content']}"]
+    for msg in messages[1:]:
+        role = "User" if msg["role"] == "user" else "NyayaVoice"
+        prompt_parts.append(f"{role}: {msg['content']}")
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.4}
+        "contents": [{"parts": [{"text": "\n\n".join(prompt_parts)}]}],
+        "generationConfig": {"temperature": PRIMARY_LLM_TEMPERATURE}
     }
-    
+
     try:
         resp = requests.post(url, json=payload, timeout=15)
         resp.raise_for_status()

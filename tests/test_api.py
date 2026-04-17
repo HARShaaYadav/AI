@@ -4,6 +4,8 @@ Tests for NyayaVoice backend
 import pytest
 from fastapi.testclient import TestClient
 from main import app
+from backend.config import PRIMARY_LLM_MODEL
+from backend.prompts import get_shared_system_prompt
 from backend.services import llm
 
 client = TestClient(app)
@@ -62,6 +64,28 @@ def test_config_endpoint():
     data = response.json()
     assert "vapi_public_key" in data
     assert "backend_url" in data
+
+
+def test_vapi_assistant_request_uses_shared_model_and_prompt():
+    """Voice/chat assistant config should use the same shared model and prompt source."""
+    payload = {
+        "message": {
+            "type": "assistant-request",
+            "call": {
+                "metadata": {
+                    "language": "en",
+                    "mode": "chat",
+                }
+            },
+        }
+    }
+
+    response = client.post("/vapi-webhook", json=payload)
+
+    assert response.status_code == 200
+    assistant = response.json()["assistant"]
+    assert assistant["model"]["model"] == PRIMARY_LLM_MODEL
+    assert assistant["model"]["systemPrompt"] == get_shared_system_prompt("en")
 
 
 def test_generate_response_answers_specific_question(monkeypatch):
@@ -158,6 +182,45 @@ def test_detect_intent_for_constitutional_rights():
     """Basic constitutional-rights questions should be recognized."""
     result = llm.detect_intent("What are my rights under Article 21 and Article 22?")
     assert result["intent"] == "constitutional_rights"
+
+
+def test_backend_openai_payload_uses_shared_model_and_prompt(monkeypatch):
+    """Backend LLM calls should use the same primary model and shared system prompt."""
+    monkeypatch.setattr(llm, "OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setattr(llm, "PRIMARY_LLM_MODEL", "gpt-5.1")
+
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [
+                    {"message": {"content": "Test response"}}
+                ]
+            }
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr(llm.requests, "post", fake_post)
+
+    reply = llm._generate_with_primary_llm(
+        user_message="How do I file an FIR?",
+        context="FIRs can be filed at any police station as a Zero FIR.",
+        lang="en",
+        conversation=[{"role": "user", "text": "I need help"}],
+    )
+
+    assert reply == "Test response"
+    assert captured["url"] == "https://api.openai.com/v1/chat/completions"
+    assert captured["json"]["model"] == "gpt-5.1"
+    assert captured["json"]["messages"][0]["content"] == get_shared_system_prompt("en")
 
 
 if __name__ == "__main__":

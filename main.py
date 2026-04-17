@@ -11,7 +11,8 @@ from backend.routes.query import router as query_router
 from backend.routes.document import router as document_router
 from backend.routes.memory import router as memory_router
 from backend.services.qdrant import ensure_collections, seed_legal_document
-from backend.config import VAPI_PUBLIC_KEY, VAPI_API_KEY
+from backend.config import VAPI_PUBLIC_KEY, VAPI_API_KEY, PRIMARY_LLM_MODEL, BACKEND_URL
+from backend.prompts import get_shared_system_prompt
 
 logging.basicConfig(
     level=logging.INFO,
@@ -99,7 +100,7 @@ async def get_config():
     print("Config requested")
     return {
         "vapi_public_key": VAPI_PUBLIC_KEY,
-        "backend_url": os.getenv("BACKEND_URL", "http://localhost:8080"),
+        "backend_url": BACKEND_URL,
     }
 
 
@@ -127,12 +128,6 @@ async def vapi_webhook(request: Request):
         language = metadata.get("language", "en")
         session_mode = metadata.get("mode", "voice")
 
-        lang_names = {
-            "hi": "Hindi", "en": "English", "ta": "Tamil",
-            "bn": "Bengali", "mr": "Marathi", "te": "Telugu",
-            "gu": "Gujarati", "kn": "Kannada", "pa": "Punjabi", "ur": "Urdu",
-        }
-        lang_name = lang_names.get(language, "English")
         is_chat_mode = session_mode == "chat"
 
         return JSONResponse({
@@ -141,21 +136,8 @@ async def vapi_webhook(request: Request):
                 "firstMessageMode": "assistant-waits-for-user" if is_chat_mode else "assistant-speaks-first",
                 "model": {
                     "provider": "openai",
-                    "model": "gpt-4o",
-                    "systemPrompt": (
-                        f"You are NyayaVoice, a kind legal aid assistant for people in India. "
-                        f"Always respond in {lang_name}. Use simple everyday language. "
-                        f"Be empathetic. If the user is in danger, immediately give emergency numbers: "
-                        f"Police 100, Women Helpline 181, Emergency 112. "
-                        f"Answer the user's exact question directly before giving extra background. "
-                        f"Do not give a generic overview when the user asks something specific like how to file a case or FIR. "
-                        f"You can explain basic constitutional rights, arrest rights, legal aid, and simple criminal-law concepts in plain language. "
-                        f"If the user says IPC, you may explain the older IPC wording and the current Bharatiya Nyaya Sanhita wording where helpful. "
-                        f"Use the query_legal tool before answering legal questions so your answer stays grounded in the knowledge base. "
-                        f"If the question is unclear, ask only one short follow-up question at a time. "
-                        f"Help users understand their rights and file complaints. "
-                        f"When you have enough details, tell the user you will generate a document for them."
-                    ),
+                    "model": PRIMARY_LLM_MODEL,
+                    "systemPrompt": get_shared_system_prompt(language),
                     "functions": [
                         {
                             "name": "query_legal",

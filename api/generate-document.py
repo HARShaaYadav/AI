@@ -4,7 +4,10 @@ import urllib.request
 import urllib.error
 from http.server import BaseHTTPRequestHandler
 
-RAILWAY_URL = os.environ.get("RAILWAY_BACKEND_URL", "https://aivoice.up.railway.app")
+BACKEND_URL = os.environ.get(
+    "RAILWAY_BACKEND_URL",
+    os.environ.get("BACKEND_URL", "https://aivoice.up.railway.app"),
+)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -21,7 +24,7 @@ class handler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
 
             req = urllib.request.Request(
-                url=f"{RAILWAY_URL}/api/generate-document",
+                url=f"{BACKEND_URL}/api/generate-document",
                 data=body,
                 headers={"Content-Type": "application/json"},
                 method="POST",
