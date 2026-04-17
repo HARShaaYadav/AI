@@ -36,7 +36,6 @@ from qdrant_client.models import (
     Distance, VectorParams, PointStruct,
     Filter, FieldCondition, MatchValue,
 )
-from qdrant_client.http.models import PayloadSchemaType
 
 from backend.config import (
     QDRANT_URL, QDRANT_API_KEY,
@@ -90,32 +89,12 @@ def ensure_collections(retries: int = 5, delay: float = 2.0):
                     vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
                 )
                 logger.info(f"Created collection: {MEMORY_COLLECTION}")
-            _ensure_memory_indexes()
             return
         except Exception as e:
             logger.warning(f"Qdrant not ready (attempt {attempt+1}/{retries}): {e}")
             if attempt < retries - 1:
                 time.sleep(delay)
     logger.error("Could not connect to Qdrant after retries.")
-
-
-def _ensure_memory_indexes():
-    """Ensure payload indexes used by filtered memory retrieval exist."""
-    try:
-        info = qdrant.get_collection(MEMORY_COLLECTION)
-        payload_schema = getattr(info, "payload_schema", {}) or {}
-        if "user_id" in payload_schema:
-            return
-
-        qdrant.create_payload_index(
-            collection_name=MEMORY_COLLECTION,
-            field_name="user_id",
-            field_schema=PayloadSchemaType.KEYWORD,
-            wait=True,
-        )
-        logger.info("Created payload index for user_memory.user_id")
-    except Exception as e:
-        logger.warning(f"Could not ensure payload index for user_memory.user_id: {e}")
 
 
 def embed(text: str) -> list:
@@ -166,7 +145,15 @@ def search_legal_knowledge(query: str, top_k: int = 4) -> list:
 
 def get_user_memory(user_id: str, top_k: int = 3) -> list:
     try:
-        results, _ = _scroll_user_memory(user_id, limit=20)
+        results, _ = qdrant.scroll(
+            collection_name=MEMORY_COLLECTION,
+            scroll_filter=Filter(
+                must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
+            ),
+            limit=20,
+            with_payload=True,
+            with_vectors=False,
+        )
         results.sort(key=lambda r: r.payload.get("timestamp", 0), reverse=True)
         return [
             {
@@ -178,37 +165,8 @@ def get_user_memory(user_id: str, top_k: int = 3) -> list:
             for r in results[:top_k]
         ]
     except Exception as e:
-        if "Index required but not found" in str(e) and "user_id" in str(e):
-            logger.warning("user_memory.user_id index missing during retrieval; creating it now and retrying once.")
-            try:
-                _ensure_memory_indexes()
-                results, _ = _scroll_user_memory(user_id, limit=20)
-                results.sort(key=lambda r: r.payload.get("timestamp", 0), reverse=True)
-                return [
-                    {
-                        "summary": r.payload.get("summary", ""),
-                        "case_type": r.payload.get("case_type", ""),
-                        "timestamp": r.payload.get("timestamp", 0),
-                        "status": r.payload.get("status", "open"),
-                    }
-                    for r in results[:top_k]
-                ]
-            except Exception as retry_error:
-                logger.error(f"User memory retrieval retry failed after creating index: {retry_error}")
         logger.error(f"User memory retrieval failed: {e}")
         return []
-
-
-def _scroll_user_memory(user_id: str, limit: int = 20):
-    return qdrant.scroll(
-        collection_name=MEMORY_COLLECTION,
-        scroll_filter=Filter(
-            must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
-        ),
-        limit=limit,
-        with_payload=True,
-        with_vectors=False,
-    )
 
 
 def store_conversation(user_id: str, conversation: list, case_type: str = "general"):
