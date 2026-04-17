@@ -445,7 +445,7 @@
     }
   };
 
-  function fallbackReply(userText) {
+  function fallbackReplyLegacy(userText) {
     const lang = getLang();
     const lower = userText.toLowerCase();
     const r = LEGAL_RESPONSES[lang] || LEGAL_RESPONSES.en;
@@ -456,7 +456,7 @@
     speakAssistantReplyInBrowser(reply);
   }
 
-  function fallbackReply(userText) {
+  function fallbackReplyBasic(userText) {
     const lang = getLang();
     const lower = String(userText || '').toLowerCase();
     const fallbackTopics = {
