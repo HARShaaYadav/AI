@@ -250,10 +250,6 @@ def generate_response(
             else:
                 reply = _intent_or_generic_response(user_message, intent, detected_lang)
 
-        if memories and _should_include_memory_note(intent, conversation):
-            memory_note = _format_memory_note(memories, detected_lang)
-            reply = memory_note + "\n\n" + reply
-
         reply += "\n\n" + _disclaimer(detected_lang)
 
         store_turn(user_id, user_message, reply, intent)

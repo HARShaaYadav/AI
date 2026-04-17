@@ -169,6 +169,26 @@ def test_generate_response_domestic_violence_where_to_file_gets_direct_guidance(
     assert "Please describe your issue in detail" not in result["response"]
 
 
+def test_generate_response_does_not_show_previous_session_banner(monkeypatch):
+    """Stored memories should not be prepended to the user-facing reply."""
+    monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])
+    monkeypatch.setattr(llm, "get_user_memory", lambda *args, **kwargs: [
+        {"case_type": "land_dispute"},
+        {"case_type": "domestic_violence"},
+    ])
+    monkeypatch.setattr(llm, "store_turn", lambda *args, **kwargs: None)
+
+    result = llm.generate_response(
+        user_id="test_user",
+        user_message="My gold chain is stolen",
+        conversation=[],
+        language_code="en",
+    )
+
+    assert "From your previous sessions" not in result["response"]
+    assert "land dispute" not in result["response"].lower()
+
+
 def test_generate_response_legal_aid_without_search_uses_intent_fallback(monkeypatch):
     """Known intents should return relevant help even without retrieval context."""
     monkeypatch.setattr(llm, "search_legal_knowledge", lambda *args, **kwargs: [])
