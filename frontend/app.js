@@ -3,8 +3,12 @@
 (function () {
   'use strict';
 
-  // Keep one production backend base URL unless overridden by a global config.
-  const API_BASE = window.NYAYAVOICE_BACKEND_URL || 'https://aivoice.up.railway.app';
+  // Prefer same-origin backend so local frontend talks to the local server.
+  const SAME_ORIGIN_BASE =
+    window.location && /^https?:$/i.test(window.location.protocol)
+      ? window.location.origin
+      : '';
+  const API_BASE = window.NYAYAVOICE_BACKEND_URL || SAME_ORIGIN_BASE || 'https://aivoice.up.railway.app';
 
   /* ── State ───────────────────────────────────────────────── */
   let userId = localStorage.getItem('nyayavoice_user_id') || ('user_' + Math.random().toString(36).slice(2, 10));
@@ -448,6 +452,49 @@
     let reply = r.default;
     if (/chori|theft|stolen|चोरी|phone|फ़ोन|snatch/.test(lower)) reply = r.theft;
     else if (/violen|hinsa|हिंसा|domestic|abuse|beat|पीट/.test(lower)) reply = r.violence;
+    addMessage(reply, false, 'html');
+    speakAssistantReplyInBrowser(reply);
+  }
+
+  function fallbackReply(userText) {
+    const lang = getLang();
+    const lower = String(userText || '').toLowerCase();
+    const fallbackTopics = {
+      en: {
+        default: 'I\'m unable to complete the Vapi chat session right now. Please try again in a moment.<br><br>Emergency numbers: Police <strong>100</strong> | Women Helpline <strong>181</strong> | Emergency <strong>112</strong> | NALSA <strong>15100</strong>',
+        theft: '<strong>Theft — Your Legal Rights:</strong><br><br>For theft, you can file an FIR or Zero FIR at the nearest police station free of cost.<br><br><em>You can also use the FIR Wizard to prepare a draft.</em>',
+        violence: '<strong>Domestic Violence — Your Legal Protection:</strong><br><br>Protection of Women from Domestic Violence Act 2005 covers physical, emotional, verbal, sexual, and economic abuse.<br><br>Immediate help: Women Helpline <strong>181</strong> | Police <strong>100</strong>.',
+        wage: '<strong>Wage Theft — Basic Help:</strong><br><br>If your salary is withheld, complain to the Labour Commissioner or Labour Department in your district.<br><br>Keep salary slips, bank statements, attendance records, and chats/emails safely.',
+        legalAid: '<strong>Free Legal Aid — Basic Help:</strong><br><br>If you cannot afford a lawyer, contact the District Legal Services Authority (DLSA).<br><br>NALSA helpline: <strong>15100</strong>.',
+        land: '<strong>Land Dispute — Basic Help:</strong><br><br>Keep sale deed, tax receipts, and land records safely.<br><br>You may need the local police station, Tehsildar, or Revenue Court depending on the issue.',
+        cyber: '<strong>Cyber Crime — Basic Help:</strong><br><br>Save screenshots, transaction IDs, phone numbers, and links.<br><br>Report at <strong>cybercrime.gov.in</strong> or call <strong>1930</strong> quickly.',
+        consumer: '<strong>Consumer Rights — Basic Help:</strong><br><br>Keep the bill, warranty, and seller communication safely.<br><br>You can complain on <strong>edaakhil.nic.in</strong> or before the District Consumer Forum.',
+        rti: '<strong>RTI — Basic Help:</strong><br><br>Under the RTI Act, you can seek information from a government office.<br><br>The authority should generally reply within <strong>30 days</strong>.'
+      },
+      hi: {
+        default: 'अभी Vapi chat session पूरा नहीं हो पा रहा है। कृपया थोड़ी देर बाद फिर कोशिश करें।<br><br>आपातकालीन नंबर: पुलिस <strong>100</strong> | महिला हेल्पलाइन <strong>181</strong> | आपातकाल <strong>112</strong> | नालसा <strong>15100</strong>',
+        theft: '<strong>चोरी — आपके कानूनी अधिकार:</strong><br><br>चोरी के मामले में आप निकटतम पुलिस स्टेशन में एफ़आईआर या ज़ीरो एफ़आईआर निःशुल्क दर्ज करा सकते हैं।<br><br><em>आप FIR Wizard से ड्राफ्ट भी तैयार कर सकते हैं।</em>',
+        violence: '<strong>घरेलू हिंसा — आपकी कानूनी सुरक्षा:</strong><br><br>घरेलू हिंसा से महिलाओं की सुरक्षा अधिनियम 2005 शारीरिक, मानसिक, यौन और आर्थिक शोषण को कवर करता है।<br><br>तुरन्त सहायता: महिला हेल्पलाइन <strong>181</strong> | पुलिस <strong>100</strong>।',
+        wage: '<strong>वेतन चोरी — बुनियादी सहायता:</strong><br><br>अगर आपका वेतन रोका गया है, तो अपने जिले के श्रम आयुक्त या Labour Department में शिकायत कर सकते हैं।<br><br>वेतन स्लिप, बैंक स्टेटमेंट, हाजिरी रिकॉर्ड और चैट/ईमेल सुरक्षित रखें।',
+        legalAid: '<strong>निःशुल्क कानूनी सहायता — बुनियादी सहायता:</strong><br><br>अगर आप वकील का खर्च नहीं उठा सकते, तो जिला विधिक सेवा प्राधिकरण (DLSA) से संपर्क करें।<br><br>नालसा हेल्पलाइन: <strong>15100</strong>।',
+        land: '<strong>भूमि विवाद — बुनियादी सहायता:</strong><br><br>यदि किसी ने आपकी भूमि पर अवैध कब्जा किया है, तो बिक्री विलेख, कर रसीदें और भूमि रिकॉर्ड सुरक्षित रखें।<br><br>मामले के अनुसार स्थानीय पुलिस स्टेशन, तहसीलदार या राजस्व न्यायालय से संपर्क किया जा सकता है।',
+        cyber: '<strong>साइबर अपराध — बुनियादी सहायता:</strong><br><br>स्क्रीनशॉट, ट्रांजैक्शन आईडी, फोन नंबर और लिंक सुरक्षित रखें।<br><br>जल्दी से <strong>cybercrime.gov.in</strong> पर शिकायत करें या <strong>1930</strong> पर कॉल करें।',
+        consumer: '<strong>उपभोक्ता अधिकार — बुनियादी सहायता:</strong><br><br>बिल, वारंटी और विक्रेता से हुई बातचीत सुरक्षित रखें।<br><br><strong>edaakhil.nic.in</strong> पर या जिला उपभोक्ता फोरम में शिकायत की जा सकती है।',
+        rti: '<strong>आरटीआई — बुनियादी सहायता:</strong><br><br>आरटीआई अधिनियम 2005 के तहत आप सरकारी कार्यालय से जानकारी मांग सकते हैं।<br><br>विभाग को सामान्यतः <strong>30 दिनों</strong> के भीतर जवाब देना होता है।'
+      }
+    };
+
+    const topics = fallbackTopics[lang] || fallbackTopics.en;
+    let reply = topics.default;
+    if (/chori|theft|stolen|चोरी|phone|फ़ोन|snatch|fir|एफ़आईआर/.test(lower)) reply = topics.theft;
+    else if (/violen|hinsa|हिंसा|domestic|abuse|beat|पीट/.test(lower)) reply = topics.violence;
+    else if (/wage|salary|vetan|वेतन|labour|labor|श्रम/.test(lower)) reply = topics.wage;
+    else if (/legal aid|free legal|निःशुल्क कानूनी सहायता|कानूनी सहायता|dlsa|nalsa|15100/.test(lower)) reply = topics.legalAid;
+    else if (/land|property|bhumi|भूमि|ज़मीन|zameen|encroach/.test(lower)) reply = topics.land;
+    else if (/cyber|साइबर|online|ऑनलाइन|fraud|धोखा|धोखाधड़ी|phishing|1930/.test(lower)) reply = topics.cyber;
+    else if (/consumer|उपभोक्ता|refund|warranty|edaakhil|product|defect/.test(lower)) reply = topics.consumer;
+    else if (/\brti\b|आरटीआई|सूचना का अधिकार|right to info/.test(lower)) reply = topics.rti;
+
     addMessage(reply, false, 'html');
     speakAssistantReplyInBrowser(reply);
   }
