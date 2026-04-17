@@ -28,6 +28,7 @@
   let recentSpokenAssistantTexts = [];
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
+  let pendingAssistantResolvers = [];
 
   async function loadVapiSdk() {
     if (window.Vapi) return window.Vapi;
@@ -127,6 +128,9 @@
 
   function renderAssistantReply(text) {
     if (!text) return false;
+    if (pendingAssistantResolvers.length) {
+      pendingAssistantResolvers.splice(0).forEach(resolve => resolve(text));
+    }
     removeTypingIndicator();
     if (!isDuplicateConversationTurn('assistant', text)) {
       addMessage(text, false, 'markdown');
@@ -139,6 +143,22 @@
       speakAssistantReplyInBrowser(text);
     }
     return true;
+  }
+
+  function waitForAssistantReply(timeoutMs = 10000) {
+    return new Promise(resolve => {
+      const timer = setTimeout(() => {
+        pendingAssistantResolvers = pendingAssistantResolvers.filter(item => item !== done);
+        resolve('');
+      }, timeoutMs);
+
+      function done(text) {
+        clearTimeout(timer);
+        resolve(text || '');
+      }
+
+      pendingAssistantResolvers.push(done);
+    });
   }
 
   function setupVapiEvents() {
@@ -495,7 +515,10 @@
         },
         triggerResponseEnabled: true,
       });
-      return true;
+      const assistantText = await waitForAssistantReply(12000);
+      if (assistantText) return true;
+      console.warn('NyayaVoice: Vapi chat timed out, falling back to backend /api/query');
+      return await fetchBackendChatResponse(userText);
     } catch (err) {
       console.error('Vapi chat send failed:', err);
       try {
@@ -518,7 +541,10 @@
           },
           triggerResponseEnabled: true,
         });
-        return true;
+        const assistantText = await waitForAssistantReply(12000);
+        if (assistantText) return true;
+        console.warn('NyayaVoice: Vapi chat retry timed out, falling back to backend /api/query');
+        return await fetchBackendChatResponse(userText);
       } catch (retryErr) {
         console.error('Vapi chat retry failed:', retryErr);
         removeTypingIndicator();
@@ -528,6 +554,36 @@
         return false;
       }
     }
+  }
+
+  async function fetchBackendChatResponse(userText) {
+    try {
+      if (vapiInstance && vapiCallActive) {
+        try {
+          vapiInstance.stop();
+        } catch (stopErr) {
+          console.error('Vapi stop before backend fallback failed:', stopErr);
+        }
+        vapiCallActive = false;
+        vapiSessionMode = null;
+        vapiSessionLanguage = null;
+      }
+
+      const result = await apiCall('/api/query', {
+        user_id: userId,
+        text: userText,
+        language: getLang(),
+        conversation: conversationHistory,
+      });
+
+      if (result && result.response) {
+        renderAssistantReply(result.response);
+        return true;
+      }
+    } catch (err) {
+      console.error('Backend /api/query fallback failed:', err);
+    }
+    return false;
   }
 
   /* ── FALLBACK (offline / no backend) ───────────────────── */
