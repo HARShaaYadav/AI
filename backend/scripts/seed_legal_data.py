@@ -266,86 +266,79 @@ LEGAL_DATA = [
     # Property and Rent Issues
     {
         "content": (
-            "Property and rent disputes can include landlord not returning deposit, illegal eviction, rent agreement disputes, "
-            "property encroachment, boundary disputes, unauthorized construction, society disputes, builder delay in possession, "
-            "fraud in property sale, fake property documents, utility disconnection by landlord, tenant not vacating, rent increase disputes, "
-            "common area disputes, and parking conflicts. In these matters, first collect the agreement, payment proof, property papers, bills, chats, and photos. "
-            "A legal notice is often the first practical step. Depending on the issue, the matter may go to Civil Court, Rent Tribunal, or Consumer Court in builder cases."
+            "Property and rent issues commonly include landlord not returning deposit, illegal eviction, rent agreement disputes, builder delay, and property fraud. "
+            "In these matters, collect the agreement and payment proof first, then send a legal notice. "
+            "Depending on the issue, the matter may go to Civil Court, Rent Tribunal, or Consumer Court in builder cases."
         ),
         "category": "property_rent",
     },
     {
         "content": (
-            "Useful documents in property and rent issues include rent agreement or lease deed, sale deed or property papers, payment receipts, bank statements, "
-            "WhatsApp chats or emails, property tax receipts, electricity and water bills, photos or videos of the property, society maintenance records, "
-            "and approved building plans in illegal construction cases. Written agreements are much stronger than verbal arrangements."
+            "Useful documents in property and rent issues include rent agreement, payment receipts, bank statement, chats or emails, and photos or videos. "
+            "Written agreements and payment proof are much stronger than verbal arrangements."
         ),
         "category": "property_rent",
     },
     # Family and Personal Issues
     {
         "content": (
-            "Family and personal issues can include divorce, domestic violence, dowry harassment, child custody, maintenance, inheritance disputes, will disputes, "
-            "elder abuse, second marriage fraud, forced marriage, live-in relationship disputes, child neglect, adoption issues, false allegations, and related complaints. "
-            "If there is abuse or threat, approach police or a Protection Officer without delay and preserve evidence. Depending on the issue, the matter may be filed in Family Court, "
-            "Civil Court, or a police station if criminal offences are involved."
+            "Family issues commonly include divorce, domestic violence, child custody, and dowry harassment. "
+            "If there is abuse or threat, approach the police or relevant authority without delay and preserve evidence. "
+            "Depending on the issue, the matter may be filed in Family Court or at the police station."
         ),
         "category": "family_personal",
     },
     {
         "content": (
-            "Important documents in family and personal disputes may include marriage certificate, wedding photos, medical reports, prior police complaints, chats or call recordings, "
-            "income proof, bank statements, child's birth certificate, proof of residence, inheritance documents, wills, and evidence of dowry or gifts. "
-            "In abuse cases, medical records, photos, and written messages can be very important evidence."
+            "Important documents in family disputes may include marriage certificate, medical reports, chats or recordings, and income proof. "
+            "In abuse cases, medical records and written messages can be very important evidence."
         ),
         "category": "family_personal",
     },
     # Employment and Workplace Issues
     {
         "content": (
-            "Employment and workplace issues can include salary not paid, wrongful termination, workplace harassment, sexual harassment under POSH, bond disputes, unfair appraisal, "
-            "unpaid overtime, PF not deposited, fake job offers, workplace discrimination, blacklisting, internship exploitation, resignation issues, denial of experience letter, "
-            "and workplace data privacy violations. Start by collecting emails, offer letter, salary proof, and internal complaint records. Depending on the issue, the matter may go to the Labour Court, "
-            "labour authority, Internal Complaints Committee, or police in fraud cases."
+            "Employment issues commonly include salary not paid, wrongful termination, and workplace harassment. "
+            "Start by collecting emails and the offer letter, then raise an internal complaint. "
+            "Depending on the issue, the matter may go to the Labour Court or ICC in harassment cases."
         ),
         "category": "workplace_issues",
     },
     {
         "content": (
-            "Useful documents in employment disputes include offer letter, appointment letter, employment contract, salary slips, bank statements, emails with HR or managers, resignation or termination letter, "
-            "attendance records, PF or ESI records, and copies of internal complaints. Even if there is no formal contract, emails and salary credits can still be important evidence."
+            "Useful documents in employment disputes include offer letter, salary slips, bank statement, and emails. "
+            "Even if there is no formal contract, emails and salary credits can still be important evidence."
         ),
         "category": "workplace_issues",
     },
     # Traffic and Public Issues
     {
         "content": (
-            "Traffic and public issues can include traffic challan disputes, drunk driving cases, accident claims, hit and run, road rage, vehicle theft, driving without licence, insurance claim rejection, "
-            "pollution certificate issues, and public nuisance. Usually, you should gather evidence quickly and contact police where necessary. Depending on the issue, the matter may go to the Traffic Police, "
-            "Motor Accident Claims Tribunal (MACT), insurer, or police station."
+            "Traffic issues commonly include accidents, vehicle theft, and insurance claim issues. "
+            "Usually, you should gather evidence quickly and contact police where necessary. "
+            "Depending on the issue, the matter may go to the Traffic Police or MACT Tribunal."
         ),
         "category": "traffic_public",
     },
     {
         "content": (
-            "Important documents in traffic and accident matters include driving licence, RC, insurance policy, FIR copy in accident cases, photos or videos of the accident, medical reports, repair bills, witness statements, "
-            "and traffic challan receipts. In accident claims, FIR and photos often make the case much stronger."
+            "Important documents in traffic matters include driving license, RC, insurance, and FIR. "
+            "Photos, videos, medical reports, and repair bills can also help make the case stronger."
         ),
         "category": "traffic_public",
     },
     # Financial and Banking Issues
     {
         "content": (
-            "Financial and banking issues can include loan harassment, credit score errors, bank fraud, unauthorized transactions, ATM issues, insurance claim rejection, NBFC fraud, cheque bounce, debt recovery threats, "
-            "and investment scams. Inform the bank immediately, preserve transaction proof, and escalate without delay in fraud matters. Depending on the dispute, you may need the bank's grievance system, RBI Ombudsman, "
-            "police complaint, cyber complaint, civil court, or cheque-bounce legal process."
+            "Financial and banking issues commonly include bank fraud, cheque bounce, and loan harassment. "
+            "Inform the bank immediately and preserve proof. Depending on the dispute, you may need the RBI Ombudsman or the police."
         ),
         "category": "financial_banking",
     },
     {
         "content": (
-            "Useful documents in financial and banking disputes include bank statements, loan agreement, EMI receipts, cheque copy, bounce memo, emails and SMS from the bank, credit report, insurance policy documents, "
-            "and investment proofs. In cheque-bounce matters, the cheque, bank return memo, and legal notice are especially important."
+            "Useful documents in financial and banking disputes include bank statement, cheque and memo, and loan documents. "
+            "In cheque-bounce matters, the cheque and bank return memo are especially important."
         ),
         "category": "financial_banking",
     },

@@ -499,6 +499,66 @@
     speakAssistantReplyInBrowser(reply);
   }
 
+  function fallbackReply(userText) {
+    const lang = getLang();
+    const lower = String(userText || '').toLowerCase();
+    const fallbackTopics = {
+      en: {
+        default: 'I\'m unable to complete the Vapi chat session right now. Please try again in a moment.<br><br>Emergency numbers: Police <strong>100</strong> | Women Helpline <strong>181</strong> | Emergency <strong>112</strong> | NALSA <strong>15100</strong>',
+        theft: '<strong>Theft â€” Your Legal Rights:</strong><br><br>For theft, you can file an FIR or Zero FIR at the nearest police station free of cost.<br><br><em>You can also use the FIR Wizard to prepare a draft.</em>',
+        violence: '<strong>Domestic Violence â€” Your Legal Protection:</strong><br><br>Protection of Women from Domestic Violence Act 2005 covers physical, emotional, verbal, sexual, and economic abuse.<br><br>Immediate help: Women Helpline <strong>181</strong> | Police <strong>100</strong>.',
+        wage: '<strong>Wage Theft â€” Basic Help:</strong><br><br>If your salary is withheld, complain to the Labour Commissioner or Labour Department in your district.<br><br>Keep salary slips, bank statements, attendance records, and chats/emails safely.',
+        legalAid: '<strong>Free Legal Aid â€” Basic Help:</strong><br><br>If you cannot afford a lawyer, contact the District Legal Services Authority (DLSA).<br><br>NALSA helpline: <strong>15100</strong>.',
+        land: '<strong>Land Dispute â€” Basic Help:</strong><br><br>Keep sale deed, tax receipts, and land records safely.<br><br>You may need the local police station, Tehsildar, or Revenue Court depending on the issue.',
+        cyber: '<strong>Cyber Crime â€” Basic Help:</strong><br><br>Save screenshots, transaction IDs, phone numbers, and links.<br><br>Report at <strong>cybercrime.gov.in</strong> or call <strong>1930</strong> quickly.',
+        consumer: '<strong>Consumer Rights â€” Basic Help:</strong><br><br>Keep the bill, warranty, and seller communication safely.<br><br>You can complain on <strong>edaakhil.nic.in</strong> or before the District Consumer Forum.',
+        property: '<strong>Property & Rent Issues:</strong><br><br><strong>Common Issues:</strong> landlord not returning deposit, illegal eviction, rent agreement disputes, builder delay, property fraud.<br><br><strong>What to do:</strong> collect agreement and payment proof, send legal notice.<br><br><strong>Where to file:</strong> Civil Court / Rent Tribunal, Consumer Court (builder cases).<br><br><strong>Documents Needed:</strong> rent agreement, payment receipts, bank statement, chats/emails, photos/videos.',
+        family: '<strong>Family Issues:</strong><br><br><strong>Common Issues:</strong> divorce, domestic violence, child custody, dowry harassment.<br><br><strong>What to do:</strong> approach police or authority, document evidence.<br><br><strong>Where to file:</strong> Family Court / Police Station.<br><br><strong>Documents Needed:</strong> marriage certificate, medical reports, chats/recordings, income proof.',
+        employment: '<strong>Employment Issues:</strong><br><br><strong>Common Issues:</strong> salary not paid, wrongful termination, workplace harassment.<br><br><strong>What to do:</strong> collect emails and offer letter, raise internal complaint.<br><br><strong>Where to file:</strong> Labour Court / ICC (for harassment).<br><br><strong>Documents Needed:</strong> offer letter, salary slips, bank statement, emails.',
+        traffic: '<strong>Traffic Issues:</strong><br><br><strong>Common Issues:</strong> accidents, vehicle theft, insurance claim issues.<br><br><strong>What to do:</strong> gather evidence, contact police.<br><br><strong>Where to file:</strong> Traffic Police / MACT Tribunal.<br><br><strong>Documents Needed:</strong> driving license, RC, insurance, FIR.',
+        finance: '<strong>Financial Issues:</strong><br><br><strong>Common Issues:</strong> bank fraud, cheque bounce, loan harassment.<br><br><strong>What to do:</strong> inform bank immediately, keep proof.<br><br><strong>Where to file:</strong> RBI Ombudsman / Police.<br><br><strong>Documents Needed:</strong> bank statement, cheque + memo, loan documents.',
+        quick: '<strong>General Steps:</strong><br><br>Collect evidence, send legal notice, file complaint/FIR, hire lawyer, attend hearings.<br><br><strong>Quick Rule:</strong> Criminal -> Police, Property/Money -> Civil Court, Service/Product -> Consumer Court, Job -> Labour Court, Family -> Family Court.',
+        rti: '<strong>RTI â€” Basic Help:</strong><br><br>Under the RTI Act, you can seek information from a government office.<br><br>The authority should generally reply within <strong>30 days</strong>.'
+      },
+      hi: {
+        default: 'अभी Vapi chat session पूरा नहीं हो पा रहा है। कृपया थोड़ी देर बाद फिर कोशिश करें।<br><br>आपातकालीन नंबर: पुलिस <strong>100</strong> | महिला हेल्पलाइन <strong>181</strong> | आपातकाल <strong>112</strong> | नालसा <strong>15100</strong>',
+        theft: '<strong>चोरी — आपके कानूनी अधिकार:</strong><br><br>चोरी के मामले में आप निकटतम पुलिस स्टेशन में एफआईआर या ज़ीरो एफआईआर निःशुल्क दर्ज करा सकते हैं।<br><br><em>आप FIR Wizard से ड्राफ्ट भी तैयार कर सकते हैं।</em>',
+        violence: '<strong>घरेलू हिंसा — आपकी कानूनी सुरक्षा:</strong><br><br>घरेलू हिंसा से महिलाओं की सुरक्षा अधिनियम 2005 शारीरिक, मानसिक, यौन और आर्थिक शोषण को कवर करता है।<br><br>तुरन्त सहायता: महिला हेल्पलाइन <strong>181</strong> | पुलिस <strong>100</strong>।',
+        wage: '<strong>वेतन चोरी — बुनियादी सहायता:</strong><br><br>अगर आपका वेतन रोका गया है, तो अपने जिले के श्रम आयुक्त या Labour Department में शिकायत कर सकते हैं।<br><br>वेतन स्लिप, बैंक स्टेटमेंट, हाजिरी रिकॉर्ड और चैट/ईमेल सुरक्षित रखें।',
+        legalAid: '<strong>निःशुल्क कानूनी सहायता — बुनियादी सहायता:</strong><br><br>अगर आप वकील का खर्च नहीं उठा सकते, तो जिला विधिक सेवा प्राधिकरण (DLSA) से संपर्क करें।<br><br>नालसा हेल्पलाइन: <strong>15100</strong>।',
+        land: '<strong>भूमि विवाद — बुनियादी सहायता:</strong><br><br>यदि किसी ने आपकी भूमि पर अवैध कब्जा किया है, तो बिक्री विलेख, कर रसीदें और भूमि रिकॉर्ड सुरक्षित रखें।<br><br>मामले के अनुसार स्थानीय पुलिस स्टेशन, तहसीलदार या राजस्व न्यायालय से संपर्क किया जा सकता है।',
+        cyber: '<strong>साइबर अपराध — बुनियादी सहायता:</strong><br><br>स्क्रीनशॉट, ट्रांजैक्शन आईडी, फोन नंबर और लिंक सुरक्षित रखें।<br><br>जल्दी से <strong>cybercrime.gov.in</strong> पर शिकायत करें या <strong>1930</strong> पर कॉल करें।',
+        consumer: '<strong>उपभोक्ता अधिकार — बुनियादी सहायता:</strong><br><br>बिल, वारंटी और विक्रेता से हुई बातचीत सुरक्षित रखें।<br><br><strong>edaakhil.nic.in</strong> पर या जिला उपभोक्ता फोरम में शिकायत की जा सकती है।',
+        property: '<strong>संपत्ति और किराया विवाद:</strong><br><br><strong>आम समस्याएं:</strong> मकान मालिक डिपॉज़िट वापस नहीं कर रहा, अवैध बेदखली, किराया एग्रीमेंट विवाद, बिल्डर द्वारा देरी, प्रॉपर्टी में धोखाधड़ी।<br><br><strong>क्या करें:</strong> एग्रीमेंट और पेमेंट का सबूत इकट्ठा करें, लीगल नोटिस भेजें।<br><br><strong>कहाँ शिकायत करें:</strong> सिविल कोर्ट / रेंट ट्रिब्यूनल, कंज्यूमर कोर्ट (बिल्डर केस)।<br><br><strong>आवश्यक दस्तावेज:</strong> किराया एग्रीमेंट, पेमेंट रसीद, बैंक स्टेटमेंट, चैट/ईमेल, फोटो/वीडियो।',
+        family: '<strong>पारिवारिक मामले:</strong><br><br><strong>आम समस्याएं:</strong> तलाक, घरेलू हिंसा, बच्चे की कस्टडी, दहेज उत्पीड़न।<br><br><strong>क्या करें:</strong> पुलिस या संबंधित अधिकारी से संपर्क करें, सबूत इकट्ठा करें।<br><br><strong>कहाँ शिकायत करें:</strong> फैमिली कोर्ट / पुलिस स्टेशन।<br><br><strong>आवश्यक दस्तावेज:</strong> विवाह प्रमाण पत्र, मेडिकल रिपोर्ट, चैट/रिकॉर्डिंग, आय का प्रमाण।',
+        employment: '<strong>नौकरी से जुड़ी समस्याएं:</strong><br><br><strong>आम समस्याएं:</strong> सैलरी नहीं मिली, गलत तरीके से नौकरी से निकाला, कार्यस्थल पर उत्पीड़न।<br><br><strong>क्या करें:</strong> ईमेल और ऑफर लेटर रखें, कंपनी में शिकायत करें।<br><br><strong>कहाँ शिकायत करें:</strong> लेबर कोर्ट / ICC (यौन उत्पीड़न के लिए)।<br><br><strong>आवश्यक दस्तावेज:</strong> ऑफर लेटर, सैलरी स्लिप, बैंक स्टेटमेंट, ईमेल।',
+        traffic: '<strong>ट्रैफिक मामले:</strong><br><br><strong>आम समस्याएं:</strong> एक्सीडेंट, वाहन चोरी, इंश्योरेंस समस्या।<br><br><strong>क्या करें:</strong> सबूत इकट्ठा करें, पुलिस से संपर्क करें।<br><br><strong>कहाँ शिकायत करें:</strong> ट्रैफिक पुलिस / MACT ट्रिब्यूनल।<br><br><strong>आवश्यक दस्तावेज:</strong> ड्राइविंग लाइसेंस, आरसी, इंश्योरेंस, एफआईआर।',
+        finance: '<strong>बैंकिंग और वित्तीय मामले:</strong><br><br><strong>आम समस्याएं:</strong> बैंक फ्रॉड, चेक बाउंस, लोन परेशानियां।<br><br><strong>क्या करें:</strong> तुरंत बैंक को बताएं, सबूत रखें।<br><br><strong>कहाँ शिकायत करें:</strong> RBI ओम्बड्समैन / पुलिस।<br><br><strong>आवश्यक दस्तावेज:</strong> बैंक स्टेटमेंट, चेक और मेमो, लोन दस्तावेज।',
+        quick: '<strong>सामान्य प्रक्रिया:</strong><br><br>सबूत इकट्ठा करें, लीगल नोटिस भेजें, शिकायत / FIR दर्ज करें, वकील रखें, सुनवाई में जाएं।<br><br><strong>आसान नियम:</strong> अपराध -> पुलिस, जमीन/पैसा -> सिविल कोर्ट, सर्विस/प्रोडक्ट -> कंज्यूमर कोर्ट, नौकरी -> लेबर कोर्ट, परिवार -> फैमिली कोर्ट।',
+        rti: '<strong>आरटीआई — बुनियादी सहायता:</strong><br><br>आरटीआई अधिनियम 2005 के तहत आप सरकारी कार्यालय से जानकारी मांग सकते हैं।<br><br>विभाग को सामान्यतः <strong>30 दिनों</strong> के भीतर जवाब देना होता है।'
+      }
+    };
+
+    const topics = fallbackTopics[lang] || fallbackTopics.en;
+    let reply = topics.default;
+    if (/chori|theft|stolen|चोरी|phone|फ़ोन|snatch|fir|एफआईआर/.test(lower)) reply = topics.theft;
+    else if (/violen|hinsa|हिंसा|domestic|abuse|beat|पीट/.test(lower)) reply = topics.violence;
+    else if (/wage|salary|vetan|वेतन|labour|labor|श्रम/.test(lower)) reply = topics.wage;
+    else if (/legal aid|free legal|निःशुल्क कानूनी सहायता|कानूनी सहायता|dlsa|nalsa|15100/.test(lower)) reply = topics.legalAid;
+    else if (/landlord|tenant|rent|deposit|evict|eviction|lease|builder|property fraud|property|land|भूमि|ज़मीन|जमीन|मकान मालिक|किराया|डिपॉज़िट|बेदखली|बिल्डर|प्रॉपर्टी|encroach/.test(lower)) reply = topics.property || topics.land;
+    else if (/divorce|custody|dowry|family court|domestic violence|तलाक|कस्टडी|दहेज|फैमिली कोर्ट|पारिवारिक/.test(lower)) reply = topics.family || topics.violence;
+    else if (/salary not paid|wrongful termination|workplace harassment|offer letter|labour court|सैलरी नहीं मिली|नौकरी से निकाला|कार्यस्थल पर उत्पीड़न|लेबर कोर्ट/.test(lower)) reply = topics.employment || topics.wage;
+    else if (/cyber|साइबर|online|ऑनलाइन|fraud|धोखा|धोखाधड़ी|phishing|1930/.test(lower)) reply = topics.cyber;
+    else if (/accident|vehicle theft|insurance claim|traffic police|mact|एक्सीडेंट|वाहन चोरी|इंश्योरेंस|ट्रैफिक पुलिस/.test(lower)) reply = topics.traffic;
+    else if (/consumer|उपभोक्ता|refund|warranty|edaakhil|product|defect/.test(lower)) reply = topics.consumer;
+    else if (/bank fraud|cheque bounce|loan harassment|rbi ombudsman|banking|financial|बैंक फ्रॉड|चेक बाउंस|लोन परेशानियां|ओम्बड्समैन|वित्तीय/.test(lower)) reply = topics.finance;
+    else if (/civil court|consumer court|labour court|family court|property\/money|job|criminal|general steps|quick rule|सिविल कोर्ट|कंज्यूमर कोर्ट|लेबर कोर्ट|फैमिली कोर्ट|अपराध|पैसा|नौकरी|सामान्य प्रक्रिया|आसान नियम/.test(lower)) reply = topics.quick;
+    else if (/\brti\b|आरटीआई|सूचना का अधिकार|right to info/.test(lower)) reply = topics.rti;
+
+    addMessage(reply, false, 'html');
+    speakAssistantReplyInBrowser(reply);
+  }
+
   function handleOutgoingChatMessage(text) {
     if (!text) return;
     addMessage(text, true, 'text');

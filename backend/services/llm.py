@@ -739,8 +739,8 @@ def _property_rent_guidance(lang: str) -> str:
             "अगर आप चाहें, तो मैं property/rent dispute के लिए अगले कदम और जरूरी documents अलग से सूचीबद्ध कर सकता हूँ."
         )
     return (
-        "- Keep the agreement, payment proof, bank records, chats, photos, and property papers safely.\n"
-        "- In deposit, eviction, possession, or builder-delay disputes, a legal notice is often the first practical step.\n"
+        "- Keep the rent agreement, payment receipts, bank statement, chats/emails, and photos/videos safely.\n"
+        "- In deposit, illegal-eviction, rent-agreement, or builder-delay disputes, a legal notice is often the first practical step.\n"
         "- Depending on the issue, you may need to file before the Civil Court, Rent Tribunal, or Consumer Court.\n\n"
         "If you want, I can list the exact documents and next steps for your property or rent issue."
     )
@@ -755,9 +755,9 @@ def _family_personal_guidance(lang: str) -> str:
             "अगर आप चाहें, तो मैं आपके family matter के हिसाब से where to file और documents needed बता सकता हूँ."
         )
     return (
-        "- Keep marriage, income, residence, child-related, medical, and communication records safely.\n"
-        "- If there is violence, threat, or dowry harassment, approach the police or Protection Officer immediately.\n"
-        "- Divorce, custody, maintenance, inheritance, and will disputes usually go to Family Court or Civil Court.\n\n"
+        "- Keep the marriage certificate, medical reports, chats/recordings, and income proof safely.\n"
+        "- If there is domestic violence, dowry harassment, or threat, approach the police or relevant authority immediately.\n"
+        "- Divorce, child-custody, and related matters may need to go to the Family Court or Police Station.\n\n"
         "If you want, I can break this down into where to file and documents needed for your family matter."
     )
 
@@ -771,9 +771,9 @@ def _workplace_issues_guidance(lang: str) -> str:
             "अगर आप चाहें, तो मैं workplace issue के लिए exact forum और documents checklist दे सकता हूँ."
         )
     return (
-        "- Keep the offer letter, contract, salary slips, bank statements, HR emails, PF/ESI records, and complaint copies safely.\n"
-        "- Written proof is especially important in salary, termination, harassment, POSH, bond, and fake-job matters.\n"
-        "- Labour matters may go to the Labour Court or labour authority, while POSH complaints can go to the ICC or LCC.\n\n"
+        "- Keep the offer letter, salary slips, bank statement, and emails safely.\n"
+        "- In salary-not-paid, wrongful-termination, or workplace-harassment matters, first raise an internal complaint.\n"
+        "- Labour matters may go to the Labour Court, while harassment complaints can go to the ICC.\n\n"
         "If you want, I can give you the exact forum and document checklist for your workplace issue."
     )
 
@@ -857,9 +857,9 @@ def _traffic_public_guidance(lang: str) -> str:
             "अगर आप चाहें, तो मैं traffic या accident matter के लिए step-by-step प्रक्रिया बता सकता हूँ."
         )
     return (
-        "- Keep the driving licence, RC, insurance papers, challan/FIR, photos, medical records, and repair bills safely.\n"
-        "- Report accidents, hit and run, vehicle theft, or public-safety issues to the police quickly.\n"
-        "- Compensation or insurance disputes may need to go before MACT, the insurer, or the traffic authority.\n\n"
+        "- Keep the driving license, RC, insurance, and FIR safely.\n"
+        "- Gather evidence and contact the police quickly in accident, vehicle-theft, or insurance-claim matters.\n"
+        "- The matter may need to go before the Traffic Police or MACT Tribunal.\n\n"
         "If you want, I can explain the traffic or accident process step by step."
     )
 
@@ -873,9 +873,9 @@ def _financial_banking_guidance(lang: str) -> str:
             "अगर आप चाहें, तो मैं banking या financial issue के लिए सही forum और documents checklist दे सकता हूँ."
         )
     return (
-        "- Keep bank statements, transaction proof, loan papers, cheque copy, bounce memo, SMS/email records, and policy papers safely.\n"
-        "- In fraud or unauthorized transaction cases, inform the bank immediately and file a police or cyber complaint if needed.\n"
-        "- Depending on the dispute, you may need the bank grievance process, RBI Ombudsman, civil court, or cheque-bounce procedure.\n\n"
+        "- Keep the bank statement, cheque + memo, and loan documents safely.\n"
+        "- In bank-fraud, cheque-bounce, or loan-harassment matters, inform the bank immediately and preserve proof.\n"
+        "- Depending on the dispute, you may need the RBI Ombudsman or the police.\n\n"
         "If you want, I can give you the right forum and documents checklist for your banking or financial issue."
     )
 
