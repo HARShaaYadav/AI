@@ -121,6 +121,26 @@ async def vapi_webhook(request: Request):
     msg_type = message.get("type", "")
     logger.info(f"Vapi webhook received: type={msg_type}")
 
+    def _tool_result_response(result_text: str) -> JSONResponse:
+        tool_call_id = (
+            message.get("toolCallId")
+            or message.get("tool_call_id")
+            or message.get("call", {}).get("toolCallId")
+            or message.get("functionCall", {}).get("toolCallId")
+            or message.get("functionCall", {}).get("id")
+            or payload.get("toolCallId")
+        )
+        if tool_call_id:
+            return JSONResponse({
+                "results": [
+                    {
+                        "toolCallId": tool_call_id,
+                        "result": result_text,
+                    }
+                ]
+            })
+        return JSONResponse({"result": result_text})
+
     # 1. Assistant request — return assistant config
     if msg_type == "assistant-request":
         call = message.get("call", {})
@@ -194,7 +214,7 @@ async def vapi_webhook(request: Request):
             )
             text = params.get("text", "")
             if not text:
-                return JSONResponse({"result": "Please tell me your problem."})
+                return _tool_result_response("Please tell me your problem.")
 
             metadata = message.get("call", {}).get("metadata", {})
             language = metadata.get("language", "en")
@@ -225,8 +245,8 @@ async def vapi_webhook(request: Request):
                         topic_lines,
                     ]
                 )
-                return JSONResponse({"result": context or "No specific information found."})
-            return JSONResponse({"result": "No specific legal information found for this query."})
+                return _tool_result_response(context or "No specific information found.")
+            return _tool_result_response("No specific legal information found for this query.")
 
         if fn_name == "generate_document":
             from backend.services.llm import generate_document_content
@@ -242,9 +262,7 @@ async def vapi_webhook(request: Request):
             filename = os.path.basename(filepath)
             doc_url = f"{BACKEND_URL}/docs/{filename}"
 
-            return JSONResponse({
-                "result": f"Your {doc_type} has been generated. Download it here: {doc_url}"
-            })
+            return _tool_result_response(f"Your {doc_type} has been generated. Download it here: {doc_url}")
 
     # 3. End of call — store conversation in Qdrant
     if msg_type == "end-of-call-report":
