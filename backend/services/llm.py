@@ -208,7 +208,7 @@ def generate_response(
     try:
         intent_data = detect_intent(user_message)
         intent = intent_data.get("intent", "general_legal_query")
-        detected_lang = intent_data.get("language", language_code)
+        detected_lang = _resolve_response_language(language_code, intent_data.get("language", "en"))
         urgency = intent_data.get("urgency", False)
 
         if urgency or intent == "emergency":
@@ -394,8 +394,8 @@ def store_turn(user_id, user_message, reply, intent):
 def _format_legal_results(results: list, lang: str) -> str:
     lines = []
     for r in results:
-        content = r["content"]
-        category = r["category"].replace("_", " ").title()
+        content = _localize_legal_text(r["content"], lang)
+        category = _localize_topic_label(r["category"], lang)
         score = r["score"]
         if score < 0.25:
             continue
@@ -416,7 +416,10 @@ def _format_legal_results(results: list, lang: str) -> str:
 
 def _build_grounded_response(user_message: str, results: list, intent: str, lang: str) -> str:
     top_results = results[:3]
-    primary_topic = TOPIC_LABELS.get(intent, TOPIC_LABELS.get(top_results[0]["category"], "legal issue"))
+    primary_topic = _localize_topic_label(
+        intent if intent != "general_legal_query" else top_results[0]["category"],
+        lang,
+    )
 
     if lang == "hi":
         intro = f"आपके सवाल के हिसाब से, {primary_topic} के लिए यह सबसे काम की जानकारी है:"
@@ -427,7 +430,7 @@ def _build_grounded_response(user_message: str, results: list, intent: str, lang
         next_steps_label = "Next steps:"
         follow_up = "If you want, I can also turn this into a short step-by-step plan or draft."
 
-    key_points = _extract_key_points(top_results)
+    key_points = _extract_key_points(top_results, lang)
     response_lines = [intro, ""]
     response_lines.extend(f"- {point}" for point in key_points[:4])
 
@@ -474,13 +477,13 @@ def _filter_results_for_intent(results: list, intent: str) -> list:
     return filtered[:3]
 
 
-def _extract_key_points(results: list) -> list:
+def _extract_key_points(results: list, lang: str = "en") -> list:
     seen = set()
     points = []
     for result in results:
         sentences = re.split(r"(?<=[.!?])\s+", result["content"].strip())
         for sentence in sentences:
-            cleaned = sentence.strip().replace("\n", " ")
+            cleaned = _localize_legal_text(sentence.strip().replace("\n", " "), lang)
             if len(cleaned) < 25:
                 continue
             key = cleaned.lower()
@@ -965,6 +968,104 @@ def _generic_guidance(lang: str) -> str:
         "- **Consumer Rights** — defective products, refunds\n\n"
         "Emergency: Police **100** | Women **181** | Emergency **112**"
     )
+
+
+def _resolve_response_language(requested_lang: str, detected_lang: str) -> str:
+    if requested_lang in SUPPORTED_LANGUAGES:
+        return requested_lang
+    return detected_lang if detected_lang in SUPPORTED_LANGUAGES else "en"
+
+
+def _localize_topic_label(topic: str, lang: str) -> str:
+    if lang != "hi":
+        return TOPIC_LABELS.get(topic, topic.replace("_", " "))
+
+    hi_labels = {
+        "theft": "चोरी",
+        "theft_complaint": "चोरी",
+        "fir_process": "एफआईआर प्रक्रिया",
+        "property_rent": "संपत्ति और किराया विवाद",
+        "family_personal": "पारिवारिक और व्यक्तिगत मामले",
+        "workplace_issues": "नौकरी और कार्यस्थल के मामले",
+        "domestic_violence": "घरेलू हिंसा",
+        "harassment": "उत्पीड़न",
+        "wage_theft": "वेतन विवाद",
+        "land_dispute": "भूमि विवाद",
+        "cyber_crime": "साइबर अपराध",
+        "consumer_rights": "उपभोक्ता अधिकार",
+        "traffic_public": "यातायात और सार्वजनिक मामले",
+        "financial_banking": "बैंकिंग और वित्तीय मामले",
+        "legal_aid": "निःशुल्क कानूनी सहायता",
+        "rti": "आरटीआई",
+        "child_rights": "बाल अधिकार",
+        "constitutional_rights": "संवैधानिक अधिकार",
+        "criminal_law_basics": "आपराधिक कानून की मूल बातें",
+        "general_legal_query": "कानूनी समस्या",
+    }
+    return hi_labels.get(topic, topic.replace("_", " "))
+
+
+def _contains_devanagari(text: str) -> bool:
+    return any("\u0900" <= ch <= "\u097F" for ch in text)
+
+
+def _localize_legal_text(text: str, lang: str) -> str:
+    if lang != "hi" or _contains_devanagari(text):
+        return text
+    return _translate_legal_english_to_hindi(text)
+
+
+def _translate_legal_english_to_hindi(text: str) -> str:
+    translated = text.strip()
+    replacements = [
+        ("If someone illegally occupies your land or property, file a complaint at the local police station or approach the Revenue Court (Tehsildar).",
+         "यदि कोई आपकी भूमि या संपत्ति पर अवैध कब्जा कर ले, तो स्थानीय पुलिस स्टेशन में शिकायत करें या राजस्व न्यायालय (तहसीलदार) से संपर्क करें।"),
+        ("Keep all documents like sale deed, property tax receipts, and Aadhaar-linked land records as evidence.",
+         "बिक्री विलेख, संपत्ति कर रसीदें और आधार से जुड़े भूमि रिकॉर्ड जैसे दस्तावेज सबूत के रूप में सुरक्षित रखें।"),
+        ("You can also file a civil suit for possession.",
+         "आप कब्जा वापस पाने के लिए सिविल मुकदमा भी दायर कर सकते हैं।"),
+        ("To file an FIR for theft, provide: what was stolen, when it happened, where it happened, and any details about the suspect.",
+         "चोरी की एफआईआर के लिए बताएं: क्या चोरी हुआ, कब हुआ, कहाँ हुआ, और आरोपी के बारे में जो भी जानकारी हो।"),
+        ("You can also file an e-FIR online in many states.",
+         "कई राज्यों में आप ऑनलाइन ई-एफआईआर भी दर्ज कर सकते हैं।"),
+        ("If police refuse to register your FIR, complain to the Superintendent of Police or file a complaint in court under Section 156(3) CrPC.",
+         "अगर पुलिस एफआईआर दर्ज करने से मना करे, तो पुलिस अधीक्षक से शिकायत करें या धारा 156(3) सीआरपीसी के तहत अदालत में आवेदन दें।"),
+        ("An FIR (First Information Report) is the first step in reporting a crime.",
+         "एफआईआर (प्रथम सूचना रिपोर्ट) अपराध की रिपोर्ट करने का पहला कदम है।"),
+        ("Save screenshots, transaction IDs, phone numbers, and links.",
+         "स्क्रीनशॉट, ट्रांजैक्शन आईडी, फोन नंबर और लिंक सुरक्षित रखें।"),
+        ("Report quickly at cybercrime.gov.in or call 1930.",
+         "जल्दी से cybercrime.gov.in पर शिकायत करें या 1930 पर कॉल करें।"),
+        ("If money was lost, also file an FIR or police complaint.",
+         "अगर पैसे गए हैं, तो एफआईआर या पुलिस शिकायत भी दर्ज करें।"),
+        ("Keep the bill, warranty, and seller communication safely.",
+         "बिल, वारंटी और विक्रेता से हुई बातचीत सुरक्षित रखें।"),
+        ("First ask for a refund or replacement in writing.",
+         "पहले लिखित रूप में रिफंड या रिप्लेसमेंट मांगें।"),
+        ("If unresolved, file a complaint on eDaakhil or before the District Consumer Forum.",
+         "समाधान न मिलने पर eDaakhil या जिला उपभोक्ता फोरम में शिकायत करें।"),
+    ]
+
+    for src, dest in replacements:
+        translated = translated.replace(src, dest)
+
+    generic_terms = [
+        ("land dispute", "भूमि विवाद"),
+        ("property and rent issues", "संपत्ति और किराया विवाद"),
+        ("property", "संपत्ति"),
+        ("land", "भूमि"),
+        ("complaint", "शिकायत"),
+        ("police station", "पुलिस स्टेशन"),
+        ("civil suit", "सिविल मुकदमा"),
+        ("evidence", "सबूत"),
+        ("documents", "दस्तावेज"),
+        ("Consumer Court", "उपभोक्ता न्यायालय"),
+        ("Civil Court", "सिविल कोर्ट"),
+        ("Rent Tribunal", "किराया न्यायाधिकरण"),
+    ]
+    for src, dest in generic_terms:
+        translated = re.sub(rf"\b{re.escape(src)}\b", dest, translated, flags=re.IGNORECASE)
+    return translated
 
 
 def _format_memory_note(memories: list, lang: str) -> str:
