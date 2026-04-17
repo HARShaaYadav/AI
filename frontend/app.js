@@ -29,12 +29,36 @@
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
 
+  async function loadVapiSdk() {
+    if (window.Vapi) return window.Vapi;
+
+    try {
+      const mod = await import('https://esm.sh/@vapi-ai/web@2.5.2');
+      window.Vapi = mod.default || mod.Vapi || mod;
+      console.info('NyayaVoice: Vapi SDK loaded');
+      return window.Vapi;
+    } catch (err) {
+      console.error('NyayaVoice: failed to load Vapi SDK', err);
+      return null;
+    }
+  }
+
   async function initVapi() {
     // Use public key directly (Vapi public key is safe to embed in frontend)
     vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
-    if (vapiPublicKey && window.Vapi) {
-      vapiInstance = new window.Vapi(vapiPublicKey);
+    const VapiClient = await loadVapiSdk();
+    if (!vapiPublicKey || !VapiClient) {
+      console.warn('NyayaVoice: Vapi init skipped because SDK or public key is missing');
+      return;
+    }
+
+    try {
+      vapiInstance = new VapiClient(vapiPublicKey);
       setupVapiEvents();
+      console.info('NyayaVoice: Vapi initialized', { apiBase: API_BASE });
+    } catch (err) {
+      console.error('NyayaVoice: failed to initialize Vapi', err);
+      vapiInstance = null;
     }
   }
 
@@ -508,6 +532,7 @@
       });
       return;
     }
+    console.warn('NyayaVoice: Vapi unavailable, using local fallback');
     fallbackReply(text);
   }
 

@@ -1,7 +1,41 @@
-__pycache__/
-*.pyc
-venv/
+# Environment and secrets
 .env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+venv_old_*/
+
+# Logs
+*.log
 server.log
 server.err.log
+
+# Local generated output
 generated_docs/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local temp directories
+.tmp_py/
+tmp*/
