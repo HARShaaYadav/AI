@@ -11,8 +11,8 @@ from backend.routes.query import router as query_router
 from backend.routes.document import router as document_router
 from backend.routes.memory import router as memory_router
 from backend.services.qdrant import ensure_collections, seed_legal_document
-from backend.config import VAPI_PUBLIC_KEY, VAPI_API_KEY, PRIMARY_LLM_MODEL, BACKEND_URL
-from backend.prompts import get_shared_system_prompt
+from backend.config import BACKEND_URL, PRIMARY_LLM_MODEL, VAPI_API_KEY, VAPI_LANGUAGE_MAP, VAPI_PUBLIC_KEY
+from backend.prompts import get_language_name, get_shared_system_prompt
 
 logging.basicConfig(
     level=logging.INFO,
@@ -130,6 +130,8 @@ async def vapi_webhook(request: Request):
 
         is_chat_mode = session_mode == "chat"
 
+        target_language = get_language_name(language)
+
         return JSONResponse({
             "assistant": {
                 "firstMessage": None if is_chat_mode else _get_greeting(language),
@@ -137,11 +139,16 @@ async def vapi_webhook(request: Request):
                 "model": {
                     "provider": "openai",
                     "model": PRIMARY_LLM_MODEL,
-                    "systemPrompt": get_shared_system_prompt(language),
+                    "systemPrompt": (
+                        get_shared_system_prompt(language)
+                        + " "
+                        + f"For this session, the active response language is {target_language}. "
+                        + f"Always restate tool results in {target_language} instead of copying them verbatim."
+                    ),
                     "functions": [
                         {
                             "name": "query_legal",
-                            "description": "Query the legal knowledge base for relevant legal information. Use this before answering legal questions unless the answer is only a greeting or emergency numbers.",
+                            "description": "Query the legal knowledge base for relevant legal information. Use this before answering legal questions unless the answer is only a greeting or emergency numbers. After receiving the result, answer in the active session language and do not copy English text directly.",
                             "parameters": {
                                 "type": "object",
                                 "properties": {
@@ -164,11 +171,11 @@ async def vapi_webhook(request: Request):
                         },
                     ],
                 },
-                "voice": {"provider": "playht", "voiceId": "jennifer"},
+                "voice": {"provider": "azure", "voiceId": "multilingual-auto"},
                 "transcriber": {
                     "provider": "deepgram",
                     "model": "nova-2",
-                    "language": language if language != "en" else "en-IN",
+                    "language": "multi" if session_mode == "voice" else VAPI_LANGUAGE_MAP.get(language, "en-IN"),
                 },
             }
         })
@@ -182,8 +189,6 @@ async def vapi_webhook(request: Request):
         if fn_name == "query_legal":
             from backend.services.llm import (
                 _filter_results_for_intent,
-                _localize_legal_text,
-                _localize_topic_label,
                 detect_intent,
                 get_retrieval_candidates,
             )
@@ -207,9 +212,18 @@ async def vapi_webhook(request: Request):
             strong_filtered = [r for r in filtered_results if r.get("score", 0) > 0.2]
             results = (strong_filtered or filtered_results or all_results)[:4]
             if results:
-                context = "\n\n".join(
-                    f"[{_localize_topic_label(r['category'], language)}]: {_localize_legal_text(r['content'], language)}"
+                topic_lines = "\n\n".join(
+                    f"- [{r['category'].replace('_', ' ').title()}] {r['content']}"
                     for r in results if r["score"] > 0.2
+                )
+                context = "\n\n".join(
+                    [
+                        f"Active language: {get_language_name(language)}.",
+                        "Facts from the legal knowledge base are below.",
+                        "Use these facts, but write the final answer only in the active language.",
+                        "Do not copy English sentences directly unless the user asks for English.",
+                        topic_lines,
+                    ]
                 )
                 return JSONResponse({"result": context or "No specific information found."})
             return JSONResponse({"result": "No specific legal information found for this query."})
