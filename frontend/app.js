@@ -29,11 +29,24 @@
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
 
+  async function loadVapiSdk() {
+    if (window.Vapi) return window.Vapi;
+    try {
+      const mod = await import('https://esm.sh/@vapi-ai/web@2.5.2');
+      window.Vapi = mod.default || mod.Vapi || mod;
+      return window.Vapi;
+    } catch (err) {
+      console.error('Vapi SDK load failed:', err);
+      return null;
+    }
+  }
+
   async function initVapi() {
     // Use public key directly (Vapi public key is safe to embed in frontend)
     vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
-    if (vapiPublicKey && window.Vapi) {
-      vapiInstance = new window.Vapi(vapiPublicKey);
+    const VapiClient = await loadVapiSdk();
+    if (vapiPublicKey && VapiClient) {
+      vapiInstance = new VapiClient(vapiPublicKey);
       setupVapiEvents();
     }
   }
@@ -494,6 +507,49 @@
     else if (/cyber|साइबर|online|ऑनलाइन|fraud|धोखा|धोखाधड़ी|phishing|1930/.test(lower)) reply = topics.cyber;
     else if (/consumer|उपभोक्ता|refund|warranty|edaakhil|product|defect/.test(lower)) reply = topics.consumer;
     else if (/\brti\b|आरटीआई|सूचना का अधिकार|right to info/.test(lower)) reply = topics.rti;
+
+    addMessage(reply, false, 'html');
+    speakAssistantReplyInBrowser(reply);
+  }
+
+  function fallbackReply(userText) {
+    const lang = getLang();
+    const lower = String(userText || '').toLowerCase();
+    const topics = {
+      en: {
+        default: 'I\'m unable to complete the response right now. Please try again in a moment.<br><br>Emergency numbers: Police <strong>100</strong> | Women Helpline <strong>181</strong> | Emergency <strong>112</strong> | NALSA <strong>15100</strong>.',
+        property: '<strong>Property & Rent Issues:</strong><br><br>Common issues: landlord not returning deposit, illegal eviction, rent agreement disputes, builder delay, property fraud.<br><br>What to do: collect agreement and payment proof, then send legal notice.<br><br>Where to file: Civil Court / Rent Tribunal, Consumer Court for builder cases.<br><br>Documents: rent agreement, payment receipts, bank statement, chats/emails, photos/videos.',
+        family: '<strong>Family Issues:</strong><br><br>Common issues: divorce, domestic violence, child custody, dowry harassment.<br><br>What to do: approach police or authority and document evidence.<br><br>Where to file: Family Court or Police Station.<br><br>Documents: marriage certificate, medical reports, chats/recordings, income proof.',
+        employment: '<strong>Employment Issues:</strong><br><br>Common issues: salary not paid, wrongful termination, workplace harassment.<br><br>What to do: collect emails and offer letter, then raise internal complaint.<br><br>Where to file: Labour Court, ICC for harassment.<br><br>Documents: offer letter, salary slips, bank statement, emails.',
+        cyber: '<strong>Cyber Crime:</strong><br><br>Common issues: UPI fraud, account hacking, phishing, fake profiles.<br><br>What to do: report immediately and take screenshots.<br><br>Where to file: Cyber Crime Portal or Police Station.<br><br>Documents: screenshots, transaction proof, bank statement, emails.',
+        traffic: '<strong>Traffic Issues:</strong><br><br>Common issues: accidents, vehicle theft, insurance claim issues.<br><br>What to do: gather evidence and contact police.<br><br>Where to file: Traffic Police or MACT Tribunal.<br><br>Documents: driving license, RC, insurance, FIR.',
+        consumer: '<strong>Consumer Complaints:</strong><br><br>Common issues: defective product, refund not given, wrong billing.<br><br>What to do: keep bill and contact company first.<br><br>Where to file: Consumer Court.<br><br>Documents: invoice, payment proof, screenshots.',
+        finance: '<strong>Financial Issues:</strong><br><br>Common issues: bank fraud, cheque bounce, loan harassment.<br><br>What to do: inform bank immediately and keep proof.<br><br>Where to file: RBI Ombudsman or Police.<br><br>Documents: bank statement, cheque + memo, loan documents.',
+        quick: '<strong>General Steps:</strong><br><br>Collect evidence, send legal notice, file complaint/FIR, hire lawyer, attend hearings.<br><br><strong>Quick Rule:</strong> Criminal -> Police, Property/Money -> Civil Court, Service/Product -> Consumer Court, Job -> Labour Court, Family -> Family Court.'
+      },
+      hi: {
+        default: 'अभी उत्तर पूरा नहीं हो पा रहा है। कृपया थोड़ी देर बाद फिर कोशिश करें।<br><br>आपातकालीन नंबर: पुलिस <strong>100</strong> | महिला हेल्पलाइन <strong>181</strong> | आपातकाल <strong>112</strong> | नालसा <strong>15100</strong>।',
+        property: '<strong>संपत्ति और किराया विवाद:</strong><br><br>आम समस्याएं: मकान मालिक डिपॉज़िट वापस नहीं कर रहा, अवैध बेदखली, किराया एग्रीमेंट विवाद, बिल्डर द्वारा देरी, प्रॉपर्टी में धोखाधड़ी।<br><br>क्या करें: एग्रीमेंट और पेमेंट का सबूत इकट्ठा करें, लीगल नोटिस भेजें।<br><br>कहाँ शिकायत करें: सिविल कोर्ट / रेंट ट्रिब्यूनल, बिल्डर केस में कंज्यूमर कोर्ट।<br><br>आवश्यक दस्तावेज: किराया एग्रीमेंट, पेमेंट रसीद, बैंक स्टेटमेंट, चैट/ईमेल, फोटो/वीडियो।',
+        family: '<strong>पारिवारिक मामले:</strong><br><br>आम समस्याएं: तलाक, घरेलू हिंसा, बच्चे की कस्टडी, दहेज उत्पीड़न।<br><br>क्या करें: पुलिस या संबंधित अधिकारी से संपर्क करें, सबूत इकट्ठा करें।<br><br>कहाँ शिकायत करें: फैमिली कोर्ट, पुलिस स्टेशन।<br><br>आवश्यक दस्तावेज: विवाह प्रमाण पत्र, मेडिकल रिपोर्ट, चैट/रिकॉर्डिंग, आय का प्रमाण।',
+        employment: '<strong>नौकरी से जुड़ी समस्याएं:</strong><br><br>आम समस्याएं: सैलरी नहीं मिली, गलत तरीके से नौकरी से निकाला, कार्यस्थल पर उत्पीड़न।<br><br>क्या करें: ईमेल और ऑफर लेटर रखें, कंपनी में शिकायत करें।<br><br>कहाँ शिकायत करें: लेबर कोर्ट, ICC (यौन उत्पीड़न के लिए)।<br><br>आवश्यक दस्तावेज: ऑफर लेटर, सैलरी स्लिप, बैंक स्टेटमेंट, ईमेल।',
+        cyber: '<strong>साइबर अपराध:</strong><br><br>आम समस्याएं: UPI फ्रॉड, अकाउंट हैक, फिशिंग, फेक प्रोफाइल।<br><br>क्या करें: तुरंत रिपोर्ट करें, स्क्रीनशॉट लें।<br><br>कहाँ शिकायत करें: साइबर क्राइम पोर्टल, पुलिस स्टेशन।<br><br>आवश्यक दस्तावेज: स्क्रीनशॉट, लेन-देन का प्रमाण, बैंक स्टेटमेंट, ईमेल।',
+        traffic: '<strong>ट्रैफिक मामले:</strong><br><br>आम समस्याएं: एक्सीडेंट, वाहन चोरी, इंश्योरेंस समस्या।<br><br>क्या करें: सबूत इकट्ठा करें, पुलिस से संपर्क करें।<br><br>कहाँ शिकायत करें: ट्रैफिक पुलिस, MACT ट्रिब्यूनल।<br><br>आवश्यक दस्तावेज: ड्राइविंग लाइसेंस, आरसी, इंश्योरेंस, एफआईआर।',
+        consumer: '<strong>उपभोक्ता शिकायत:</strong><br><br>आम समस्याएं: खराब प्रोडक्ट, रिफंड नहीं मिला, गलत बिल।<br><br>क्या करें: बिल रखें, पहले कंपनी से संपर्क करें।<br><br>कहाँ शिकायत करें: कंज्यूमर कोर्ट।<br><br>आवश्यक दस्तावेज: बिल, पेमेंट प्रूफ, स्क्रीनशॉट।',
+        finance: '<strong>बैंकिंग और वित्तीय मामले:</strong><br><br>आम समस्याएं: बैंक फ्रॉड, चेक बाउंस, लोन परेशानियां।<br><br>क्या करें: तुरंत बैंक को बताएं, सबूत रखें।<br><br>कहाँ शिकायत करें: RBI ओम्बड्समैन, पुलिस।<br><br>आवश्यक दस्तावेज: बैंक स्टेटमेंट, चेक और मेमो, लोन दस्तावेज।',
+        quick: '<strong>सामान्य प्रक्रिया और आसान नियम:</strong><br><br>सबूत इकट्ठा करें, लीगल नोटिस भेजें, शिकायत / FIR दर्ज करें, वकील रखें, सुनवाई में जाएं।<br><br>आसान नियम: अपराध -> पुलिस, जमीन/पैसा -> सिविल कोर्ट, सर्विस/प्रोडक्ट -> कंज्यूमर कोर्ट, नौकरी -> लेबर कोर्ट, परिवार -> फैमिली कोर्ट।'
+      }
+    };
+
+    const set = topics[lang] || topics.en;
+    let reply = set.default;
+    if (/landlord|tenant|rent|deposit|evict|builder|property fraud|मकान मालिक|किराया|डिपॉजिट|बेदखली|बिल्डर|प्रॉपर्टी/.test(lower)) reply = set.property;
+    else if (/divorce|custody|dowry|domestic violence|family|तलाक|कस्टडी|दहेज|घरेलू हिंसा|पारिवारिक/.test(lower)) reply = set.family;
+    else if (/salary not paid|termination|workplace|offer letter|harassment|सैलरी नहीं|नौकरी से निकाला|कार्यस्थल|ऑफर लेटर|उत्पीड़न/.test(lower)) reply = set.employment;
+    else if (/cyber|upi|phishing|fake profile|hack|साइबर|फ्रॉड|फिशिंग|फेक प्रोफाइल|हैक/.test(lower)) reply = set.cyber;
+    else if (/traffic|accident|vehicle theft|insurance claim|चालान|एक्सीडेंट|वाहन चोरी|इंश्योरेंस/.test(lower)) reply = set.traffic;
+    else if (/consumer|refund|billing|invoice|उपभोक्ता|रिफंड|बिल|प्रोडक्ट/.test(lower)) reply = set.consumer;
+    else if (/bank fraud|cheque bounce|loan|banking|बैंक फ्रॉड|चेक बाउंस|लोन|वित्तीय/.test(lower)) reply = set.finance;
+    else if (/civil court|consumer court|labour court|family court|property\/money|job|criminal|सिविल कोर्ट|कंज्यूमर कोर्ट|लेबर कोर्ट|फैमिली कोर्ट|अपराध|पैसा|नौकरी/.test(lower)) reply = set.quick;
 
     addMessage(reply, false, 'html');
     speakAssistantReplyInBrowser(reply);
