@@ -123,11 +123,11 @@ INTENT_PATTERNS: Dict[str, str] = {
 }
 
 INTENT_PATTERNS.update({
-    "property_rent": r"landlord|tenant|rent|deposit|evict|eviction|lease|builder|possession|property sale|encroach|encroachment|boundary|parking|society dispute|maintenance dispute|unauthorized construction",
-    "family_personal": r"divorce|custody|alimony|maintenance|inheritance|will dispute|elder abuse|forced marriage|second marriage|live.?in|adoption|child neglect|marital dispute|dowry",
-    "workplace_issues": r"salary not paid|wrongful termination|terminated|overtime|pf|esi|workplace discrimination|blacklist|experience letter|bond|contract dispute|job fraud|fake job|resignation issue|internship exploitation",
-    "traffic_public": r"traffic challan|drunk driving|accident|hit and run|road rage|vehicle theft|driving license|insurance claim|pollution certificate|public nuisance|mact",
-    "financial_banking": r"loan harassment|credit score|cibil|bank fraud|unauthorized transaction|atm issue|insurance claim rejection|nbfc|cheque bounce|debt recovery|investment scam|upi scam|credit card fraud",
+    "property_rent": r"landlord|tenant|rent|deposit|evict|eviction|lease|builder|possession|property sale|encroach|encroachment|boundary|parking|society dispute|maintenance dispute|unauthorized construction|मकान मालिक|किराया|डिपॉजिट|बेदखली|कब्जा|सीमा विवाद|बाउंड्री|बिल्डर|पजेशन|पार्किंग विवाद|सोसाइटी विवाद|बिजली काट|पानी काट",
+    "family_personal": r"divorce|custody|alimony|maintenance|inheritance|will dispute|elder abuse|forced marriage|second marriage|live.?in|adoption|child neglect|marital dispute|dowry|तलाक|घरेलू हिंसा|दहेज|कस्टडी|गुजारा भत्ता|विरासत|वसीयत|जबरन शादी|लिव.?इन|गोद लेने|बुजुर्ग",
+    "workplace_issues": r"salary not paid|wrongful termination|terminated|overtime|pf|esi|workplace discrimination|blacklist|experience letter|bond|contract dispute|job fraud|fake job|resignation issue|internship exploitation|सैलरी न मिलना|नौकरी से निकाल|ओवरटाइम|पीएफ|फर्जी जॉब|अनुभव पत्र|कार्यस्थल उत्पीड़न|यौन उत्पीड़न|कॉन्ट्रैक्ट विवाद",
+    "financial_banking": r"loan harassment|credit score|cibil|bank fraud|unauthorized transaction|atm issue|insurance claim rejection|nbfc|cheque bounce|debt recovery|investment scam|upi scam|credit card fraud|लोन|बैंक फ्रॉड|अनधिकृत ट्रांजैक्शन|चेक बाउंस|निवेश धोखाधड़ी|क्रेडिट स्कोर|ईएमआई|ऋण",
+    "traffic_public": r"traffic challan|drunk driving|accident|hit and run|road rage|vehicle theft|driving license|insurance claim|pollution certificate|public nuisance|mact|चालान|एक्सीडेंट|हिट एंड रन|वाहन चोरी|ड्राइविंग लाइसेंस|इंश्योरेंस क्लेम|सार्वजनिक उपद्रव",
     "constitutional_rights": r"constitution|fundamental right|article 14|article 19|article 21|article 22|article 32|article 39a|equality before law|personal liberty|arrest rights|constitutional right",
     "criminal_law_basics": r"\bipc\b|\bbns\b|bharatiya nyaya sanhita|criminal law|robbery|extortion|wrongful restraint|wrongful confinement|self defence|private defence|assault|criminal force",
 })
