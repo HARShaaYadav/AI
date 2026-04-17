@@ -11,7 +11,7 @@ from backend.routes.query import router as query_router
 from backend.routes.document import router as document_router
 from backend.routes.memory import router as memory_router
 from backend.services.qdrant import ensure_collections, seed_legal_document
-from backend.config import BACKEND_URL, PRIMARY_LLM_MODEL, VAPI_API_KEY, VAPI_LANGUAGE_MAP, VAPI_PUBLIC_KEY
+from backend.config import BACKEND_URL, PRIMARY_LLM_MODEL, VAPI_API_KEY, VAPI_PUBLIC_KEY
 from backend.prompts import get_language_name, get_shared_system_prompt
 
 logging.basicConfig(
@@ -175,7 +175,7 @@ async def vapi_webhook(request: Request):
                 "transcriber": {
                     "provider": "deepgram",
                     "model": "nova-2",
-                    "language": "multi" if session_mode == "voice" else VAPI_LANGUAGE_MAP.get(language, "en-IN"),
+                    "language": "multi",
                 },
             }
         })

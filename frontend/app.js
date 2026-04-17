@@ -19,6 +19,7 @@
   let vapiPublicKey = '';
   let vapiCallActive = false;
   let vapiSessionMode = null;
+  let vapiSessionLanguage = null;
   let pendingTypedMessages = [];
   let recentSpokenAssistantTexts = [];
   let lastSpeechStartAt = 0;
@@ -79,6 +80,7 @@
       newMicStatus.textContent = t('vcReady');
       vapiCallActive = false;
       vapiSessionMode = null;
+      vapiSessionLanguage = null;
     });
     vapiInstance.on('error', (err) => {
       console.error('Vapi error:', err);
@@ -86,6 +88,7 @@
       newMicStatus.textContent = t('vcReady');
       vapiCallActive = false;
       vapiSessionMode = null;
+      vapiSessionLanguage = null;
       removeTypingIndicator();
     });
   }
@@ -141,6 +144,16 @@
   function switchLang(code) {
     applyLang(code);
     [langSwitch, langMobile, settingsLang].forEach(sel => { if (sel) sel.value = code; });
+    if (vapiInstance && vapiCallActive) {
+      try {
+        vapiInstance.stop();
+      } catch (err) {
+        console.error('Vapi stop on language switch failed:', err);
+      }
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
+    }
   }
   langSwitch.addEventListener('change', e => switchLang(e.target.value));
   langMobile.addEventListener('change', e => switchLang(e.target.value));
@@ -334,13 +347,28 @@
 
   async function ensureVapiSession(mode = 'chat') {
     if (!vapiInstance) return false;
+    const currentLang = getLang();
+    const needsRestart = vapiCallActive && (vapiSessionMode !== mode || vapiSessionLanguage !== currentLang);
+
+    if (needsRestart) {
+      try {
+        vapiInstance.stop();
+      } catch (err) {
+        console.error('Vapi stop before restart failed:', err);
+      }
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
+    }
+
     if (vapiCallActive) return true;
 
     vapiSessionMode = mode;
+    vapiSessionLanguage = currentLang;
     await vapiInstance.start({
       serverUrl: API_BASE + '/vapi-webhook',
       serverUrlSecret: '',
-      metadata: { user_id: userId, language: getLang(), mode },
+      metadata: { user_id: userId, language: currentLang, mode },
     });
     vapiCallActive = true;
     return true;
@@ -367,11 +395,35 @@
       return true;
     } catch (err) {
       console.error('Vapi chat send failed:', err);
-      removeTypingIndicator();
-      const normalized = normalizeText(userText);
-      pendingTypedMessages = pendingTypedMessages.filter(item => item !== normalized);
-      conversationHistory = conversationHistory.filter((msg, index) => !(index === conversationHistory.length - 1 && msg.role === 'user' && msg.text === userText));
-      return false;
+      try {
+        if (vapiInstance) vapiInstance.stop();
+      } catch (stopErr) {
+        console.error('Vapi stop after send failure failed:', stopErr);
+      }
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
+
+      try {
+        await ensureVapiSession('chat');
+        vapiSessionMode = 'chat';
+        vapiInstance.send({
+          type: 'add-message',
+          message: {
+            role: 'user',
+            content: userText,
+          },
+          triggerResponseEnabled: true,
+        });
+        return true;
+      } catch (retryErr) {
+        console.error('Vapi chat retry failed:', retryErr);
+        removeTypingIndicator();
+        const normalized = normalizeText(userText);
+        pendingTypedMessages = pendingTypedMessages.filter(item => item !== normalized);
+        conversationHistory = conversationHistory.filter((msg, index) => !(index === conversationHistory.length - 1 && msg.role === 'user' && msg.text === userText));
+        return false;
+      }
     }
   }
 
