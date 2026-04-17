@@ -28,7 +28,6 @@
   let recentSpokenAssistantTexts = [];
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
-  let pendingChatFallbackTimer = null;
 
   async function loadVapiSdk() {
     if (window.Vapi) return window.Vapi;
@@ -79,10 +78,6 @@
             conversationHistory.push({ role: 'user', text: msg.transcript });
           }
         } else if (msg.role === 'assistant') {
-          if (pendingChatFallbackTimer) {
-            clearTimeout(pendingChatFallbackTimer);
-            pendingChatFallbackTimer = null;
-          }
           removeTypingIndicator();
           if (!isDuplicateConversationTurn('assistant', msg.transcript)) {
             addMessage(msg.transcript, false, 'markdown');
@@ -113,27 +108,6 @@
       vapiSessionLanguage = null;
       removeTypingIndicator();
     });
-  }
-
-  function scheduleChatFallback(userText, timeoutMs = 8000) {
-    if (pendingChatFallbackTimer) {
-      clearTimeout(pendingChatFallbackTimer);
-    }
-    pendingChatFallbackTimer = setTimeout(() => {
-      pendingChatFallbackTimer = null;
-      removeTypingIndicator();
-      try {
-        if (vapiInstance && vapiCallActive && vapiSessionMode === 'chat') {
-          vapiInstance.stop();
-        }
-      } catch (err) {
-        console.error('Vapi stop before fallback failed:', err);
-      }
-      vapiCallActive = false;
-      vapiSessionMode = null;
-      vapiSessionLanguage = null;
-      fallbackReply(userText);
-    }, timeoutMs);
   }
 
   /* ── DOM refs ──────────────────────────────────────────── */
@@ -435,7 +409,6 @@
         },
         triggerResponseEnabled: true,
       });
-      scheduleChatFallback(userText);
       return true;
     } catch (err) {
       console.error('Vapi chat send failed:', err);
@@ -459,7 +432,6 @@
           },
           triggerResponseEnabled: true,
         });
-        scheduleChatFallback(userText);
         return true;
       } catch (retryErr) {
         console.error('Vapi chat retry failed:', retryErr);
@@ -627,7 +599,11 @@
   const newMicStatus = document.getElementById('micStatus');
 
   newMicBtn.addEventListener('click', () => {
-    startWebSpeechDashboard();
+    if (vapiInstance) {
+      startVapiCall();
+    } else {
+      startWebSpeechDashboard();
+    }
   });
 
   function startVapiCall() {
