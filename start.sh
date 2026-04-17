@@ -41,7 +41,7 @@ try:
     else:
         print('ℹ️  Using in-memory Qdrant')
 except Exception as e:
-    echo '⚠️  Qdrant connection failed, will use in-memory storage'
+    print(f'⚠️  Qdrant connection failed, will use in-memory storage: {e}')
 "
 
 # Create necessary directories
