@@ -62,6 +62,85 @@
     }
   }
 
+  function extractTextFromContent(content) {
+    if (!content) return '';
+    if (typeof content === 'string') return content.trim();
+    if (Array.isArray(content)) {
+      return content
+        .map(item => {
+          if (typeof item === 'string') return item;
+          if (!item || typeof item !== 'object') return '';
+          return item.text || item.content || item.value || '';
+        })
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+    }
+    if (typeof content === 'object') {
+      return (
+        content.text ||
+        content.content ||
+        content.value ||
+        extractTextFromContent(content.parts) ||
+        ''
+      ).trim();
+    }
+    return '';
+  }
+
+  function getAssistantTextFromMessage(msg) {
+    if (!msg || typeof msg !== 'object') return '';
+
+    if (msg.role === 'assistant') {
+      return extractTextFromContent(
+        msg.transcript ||
+        msg.text ||
+        msg.content ||
+        msg.message?.content ||
+        msg.message
+      );
+    }
+
+    const directAssistant = extractTextFromContent(
+      msg.assistant ||
+      msg.output ||
+      msg.response ||
+      msg.text
+    );
+    if (directAssistant) return directAssistant;
+
+    const messages = []
+      .concat(msg.messages || [])
+      .concat(msg.conversation?.messages || [])
+      .concat(msg.artifact?.messages || []);
+
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const item = messages[i];
+      if (item && item.role === 'assistant') {
+        const text = extractTextFromContent(item.content || item.message || item.text);
+        if (text) return text;
+      }
+    }
+
+    return '';
+  }
+
+  function renderAssistantReply(text) {
+    if (!text) return false;
+    removeTypingIndicator();
+    if (!isDuplicateConversationTurn('assistant', text)) {
+      addMessage(text, false, 'markdown');
+      conversationHistory.push({ role: 'assistant', text });
+      messageCount++;
+      localStorage.setItem('nyayavoice_msg_count', messageCount);
+      updateStats();
+    }
+    if (vapiSessionMode === 'chat') {
+      speakAssistantReplyInBrowser(text);
+    }
+    return true;
+  }
+
   function setupVapiEvents() {
     if (!vapiInstance) return;
 
@@ -89,18 +168,14 @@
             conversationHistory.push({ role: 'user', text: msg.transcript });
           }
         } else if (msg.role === 'assistant') {
-          removeTypingIndicator();
-          if (!isDuplicateConversationTurn('assistant', msg.transcript)) {
-            addMessage(msg.transcript, false, 'markdown');
-            conversationHistory.push({ role: 'assistant', text: msg.transcript });
-            messageCount++;
-            localStorage.setItem('nyayavoice_msg_count', messageCount);
-            updateStats();
-          }
-          if (vapiSessionMode === 'chat') {
-            speakAssistantReplyInBrowser(msg.transcript);
-          }
+          renderAssistantReply(msg.transcript);
         }
+        return;
+      }
+
+      const assistantText = getAssistantTextFromMessage(msg);
+      if (assistantText) {
+        renderAssistantReply(assistantText);
       }
     });
     vapiInstance.on('call-end', () => {
