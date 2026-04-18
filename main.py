@@ -265,6 +265,8 @@ async def vapi_webhook(request: Request):
                         f"Active language: {get_language_name(language)}.",
                         "Facts from the legal knowledge base are below.",
                         "Use these facts, but write the final answer only in the active language.",
+                        "The active language comes from the UI selection and is authoritative.",
+                        "If the active language is English, do not answer in Hindi.",
                         "Do not copy English sentences directly unless the user asks for English.",
                         topic_lines,
                     ]

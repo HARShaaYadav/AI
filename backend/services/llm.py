@@ -367,6 +367,7 @@ def _generate_with_openrouter(user_message: str, context: str, lang: str, conver
 
 
 def _build_llm_messages(user_message: str, context: str, lang: str, conversation: list) -> list:
+    language_name = SUPPORTED_LANGUAGES.get(lang, "English")
     messages = [{"role": "system", "content": get_shared_system_prompt(lang)}]
 
     for msg in conversation[-4:]:
@@ -378,8 +379,11 @@ def _build_llm_messages(user_message: str, context: str, lang: str, conversation
     messages.append({
         "role": "user",
         "content": (
-            f"Required response language: {lang}.\n"
-            f"Reply only in {lang}. Do not switch to another language, even if earlier conversation messages used another language.\n\n"
+            f"Required response language code: {lang}.\n"
+            f"Required response language name: {language_name}.\n"
+            f"The UI-selected language is authoritative.\n"
+            f"Reply only in {language_name}. Do not switch to another language, even if earlier conversation messages used another language.\n"
+            f"If {language_name} is English, do not answer in Hindi.\n\n"
             f"Legal Context:\n{context_block}\n\n"
             f"Current User Message:\n{user_message}\n\n"
             "Answer using the legal context when it is relevant. "
