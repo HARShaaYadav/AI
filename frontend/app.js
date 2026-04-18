@@ -28,6 +28,7 @@
   let recentSpokenAssistantTexts = [];
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
+  let vapiUnavailableReason = null;
 
   async function waitForVapiSdk(timeoutMs = 5000) {
     const start = Date.now();
@@ -70,7 +71,6 @@
       }
       if (msg.type === 'transcript' && msg.transcriptType === 'final') {
         if (vapiSessionMode === 'chat') {
-          console.info('Ignoring Vapi transcript in chat speech-only mode:', { role: msg.role, transcriptType: msg.transcriptType });
           return;
         }
         if (msg.role === 'user') {
@@ -102,6 +102,10 @@
     });
     vapiInstance.on('error', (err) => {
       console.error('Vapi error:', err);
+      if (err && err.type === 'daily-error') {
+        vapiUnavailableReason = 'daily_limit_reached';
+        console.warn('Vapi unavailable for this session: daily limit reached or account quota exhausted');
+      }
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
       vapiCallActive = false;
@@ -328,7 +332,7 @@
   }
 
   async function speakAssistantReplyWithVapi(text) {
-    if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text)) return false;
+    if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text) || vapiUnavailableReason) return false;
     rememberSpokenAssistantText(text);
     const requestedAt = Date.now();
     if (pendingSpeechFallbackTimer) {
