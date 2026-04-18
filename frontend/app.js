@@ -69,6 +69,10 @@
         }
       }
       if (msg.type === 'transcript' && msg.transcriptType === 'final') {
+        if (vapiSessionMode === 'chat') {
+          console.info('Ignoring Vapi transcript in chat speech-only mode:', { role: msg.role, transcriptType: msg.transcriptType });
+          return;
+        }
         if (msg.role === 'user') {
           if (consumePendingTypedMessage(msg.transcript)) return;
           showPage('chat');
