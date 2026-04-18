@@ -22,6 +22,7 @@ class QueryResponse(BaseModel):
     language: str = Field(..., description="Response language")
     follow_up: bool = Field(..., description="Whether follow-up is needed")
     urgency: bool = Field(..., description="Whether the query indicates urgency")
+    source: str = Field(..., description="Response source: openai or backend_fallback")
 
 
 @router.post("/query", response_model=QueryResponse)

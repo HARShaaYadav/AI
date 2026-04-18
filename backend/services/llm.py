@@ -222,6 +222,7 @@ def generate_response(
                 "language": detected_lang,
                 "follow_up": False,
                 "urgency": True,
+                "source": "backend_fallback",
             }
 
         legal_results = _search_legal_knowledge_with_fallback(user_message, intent, top_k=6)
@@ -232,6 +233,8 @@ def generate_response(
         strong_intent_results = [r for r in intent_results if r["score"] >= 0.25]
         response_results = strong_intent_results or intent_results or strong_results
 
+        source = "backend_fallback"
+
         if _primary_llm_available():
             # Use the configured primary LLM so Vapi and backend text chat stay aligned.
             context_source = response_results or [r for r in legal_results if r["score"] > 0.2]
@@ -239,7 +242,9 @@ def generate_response(
                 [f"[{r['category'].title()}] {r['content']}" for r in context_source if r["score"] > 0.2]
             )
             reply = _generate_with_primary_llm(user_message, context_str, detected_lang, conversation)
-            if not reply:
+            if reply:
+                source = "openai"
+            else:
                 # Fallback if Gemini fails
                 if response_results:
                     reply = _build_grounded_response(user_message, response_results, intent, detected_lang)
@@ -261,6 +266,7 @@ def generate_response(
             "language": detected_lang,
             "follow_up": True,
             "urgency": False,
+            "source": source,
         }
     except Exception as e:
         logger.error(f"Error generating response for user {user_id}: {str(e)}", exc_info=True)
@@ -270,6 +276,7 @@ def generate_response(
             "language": language_code,
             "follow_up": False,
             "urgency": False,
+            "source": "backend_fallback",
         }
 
 

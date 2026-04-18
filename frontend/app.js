@@ -453,6 +453,7 @@
         language: getLang(),
         conversation: previousConversation,
       });
+      console.info('Chat response source:', result.source);
 
       removeTypingIndicator();
 
