@@ -34,7 +34,10 @@
     vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
     if (vapiPublicKey && window.Vapi) {
       vapiInstance = new window.Vapi(vapiPublicKey);
+      console.info('Vapi initialized successfully');
       setupVapiEvents();
+    } else {
+      console.warn('Vapi not initialized', { hasPublicKey: !!vapiPublicKey, hasSdk: !!window.Vapi });
     }
   }
 
@@ -335,9 +338,10 @@
 
     pendingSpeechFallbackTimer = setTimeout(() => {
       if (lastSpeechStartAt < requestedAt) {
+        console.warn('Vapi speech did not start in time, falling back to browser speech');
         speakAssistantReplyInBrowser(text);
       }
-    }, 1800);
+    }, 4000);
     return true;
   }
 
@@ -382,12 +386,14 @@
 
     vapiSessionMode = mode;
     vapiSessionLanguage = currentLang;
+    console.info('Starting Vapi session', { mode, language: currentLang, serverUrl: API_BASE + '/vapi-webhook' });
     await vapiInstance.start({
       serverUrl: API_BASE + '/vapi-webhook',
       serverUrlSecret: '',
       metadata: { user_id: userId, language: currentLang, mode },
     });
     vapiCallActive = true;
+    console.info('Vapi session started', { mode, language: currentLang });
     return true;
   }
 
