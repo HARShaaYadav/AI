@@ -29,6 +29,7 @@
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
   let vapiUnavailableReason = null;
+  let browserVoiceFallbackEnabled = false;
 
   async function waitForVapiSdk(timeoutMs = 5000) {
     const start = Date.now();
@@ -359,6 +360,8 @@
       console.error('Vapi say failed:', err);
       return false;
     }
+
+    if (!browserVoiceFallbackEnabled) return true;
 
     pendingSpeechFallbackTimer = setTimeout(() => {
       if (lastSpeechStartAt < requestedAt) {
