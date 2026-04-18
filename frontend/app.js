@@ -74,9 +74,6 @@
             localStorage.setItem('nyayavoice_msg_count', messageCount);
             updateStats();
           }
-          if (vapiSessionMode === 'chat') {
-            speakAssistantReplyInBrowser(msg.transcript);
-          }
         }
       }
     });
@@ -314,8 +311,8 @@
     recentSpokenAssistantTexts.push({ text: normalizeText(text), ts: Date.now() });
   }
 
-  function speakAssistantReplyWithVapi(text) {
-    if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text)) return;
+  async function speakAssistantReplyWithVapi(text) {
+    if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text)) return false;
     rememberSpokenAssistantText(text);
     const requestedAt = Date.now();
     if (pendingSpeechFallbackTimer) {
@@ -323,6 +320,9 @@
       pendingSpeechFallbackTimer = null;
     }
     try {
+      await ensureVapiSession('chat');
+      vapiSessionMode = 'chat';
+      console.info('Voice output source: vapi');
       vapiInstance.send({
         type: 'say',
         content: text,
@@ -330,8 +330,7 @@
       });
     } catch (err) {
       console.error('Vapi say failed:', err);
-      speakAssistantReplyInBrowser(text);
-      return;
+      return false;
     }
 
     pendingSpeechFallbackTimer = setTimeout(() => {
@@ -339,6 +338,7 @@
         speakAssistantReplyInBrowser(text);
       }
     }, 1800);
+    return true;
   }
 
   function speakAssistantReplyInBrowser(text) {
@@ -444,6 +444,15 @@
     }
   }
 
+  async function speakAssistantReply(text) {
+    if (!text) return;
+    if (vapiInstance) {
+      const spokeWithVapi = await speakAssistantReplyWithVapi(text);
+      if (spokeWithVapi) return;
+    }
+    speakAssistantReplyInBrowser(text);
+  }
+
   async function sendToBackendChat(userText) {
     const previousConversation = conversationHistory.slice(0, -1);
     addTypingIndicator();
@@ -476,7 +485,7 @@
         updateStats();
       }
 
-      speakAssistantReplyInBrowser(result.response);
+      await speakAssistantReply(result.response);
       return true;
     } catch (err) {
       console.error('Backend chat request failed:', err);
