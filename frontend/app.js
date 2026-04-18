@@ -29,7 +29,7 @@
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
   let vapiUnavailableReason = null;
-  let browserVoiceFallbackEnabled = false;
+  let browserVoiceFallbackEnabled = true;
 
   async function waitForVapiSdk(timeoutMs = 5000) {
     const start = Date.now();
