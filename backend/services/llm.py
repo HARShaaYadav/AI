@@ -378,6 +378,8 @@ def _build_llm_messages(user_message: str, context: str, lang: str, conversation
     messages.append({
         "role": "user",
         "content": (
+            f"Required response language: {lang}.\n"
+            f"Reply only in {lang}. Do not switch to another language, even if earlier conversation messages used another language.\n\n"
             f"Legal Context:\n{context_block}\n\n"
             f"Current User Message:\n{user_message}\n\n"
             "Answer using the legal context when it is relevant. "
