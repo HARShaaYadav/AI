@@ -570,16 +570,124 @@
     speakAssistantReplyInBrowser(reply);
   }
 
+  function contextualFallbackReply(userText) {
+    const lower = String(userText || '').toLowerCase();
+    const recentText = conversationHistory
+      .slice(-6)
+      .map(msg => String(msg && msg.text ? msg.text : '').toLowerCase())
+      .join(' ');
+
+    function detectScope(text) {
+      if (/where to file|where can i file|where should i file|which court|tribunal|forum|कहाँ|किस कोर्ट|कहाँ शिकायत/.test(text)) return 'where';
+      if (/documents|document needed|documents needed|what documents|proof|papers|receipt|agreement|दस्तावेज|सबूत|कागज/.test(text)) return 'documents';
+      if (/what to do|what can i do|what should i do|next step|next steps|how to proceed|क्या करें|क्या करूँ|अगला कदम/.test(text)) return 'what';
+      return 'general';
+    }
+
+    function detectTopic(text) {
+      if (/landlord|tenant|rent|deposit|evict|eviction|lease|builder|property fraud|property|land|भूमि|ज़मीन|जमीन|मकान मालिक|किराया|डिपॉज़िट|बेदखली|बिल्डर|प्रॉपर्टी|encroach/.test(text)) return 'property';
+      if (/divorce|custody|dowry|family court|domestic violence|तलाक|कस्टडी|दहेज|फैमिली कोर्ट|पारिवारिक/.test(text)) return 'family';
+      if (/salary|wage|vetan|वेतन|labour|labor|श्रम|wrongful termination|offer letter|लेबर कोर्ट|कार्यस्थल पर उत्पीड़न/.test(text)) return 'employment';
+      if (/cyber|साइबर|online|ऑनलाइन|fraud|धोखा|धोखाधड़ी|phishing|1930/.test(text)) return 'cyber';
+      if (/consumer|उपभोक्ता|refund|warranty|edaakhil|product|defect/.test(text)) return 'consumer';
+      if (/bank fraud|cheque bounce|loan harassment|rbi ombudsman|banking|financial|बैंक फ्रॉड|चेक बाउंस|लोन परेशानियां|ओम्बड्समैन|वित्तीय/.test(text)) return 'finance';
+      if (/accident|vehicle theft|insurance claim|traffic police|mact|एक्सीडेंट|वाहन चोरी|इंश्योरेंस|ट्रैफिक पुलिस/.test(text)) return 'traffic';
+      if (/legal aid|free legal|कानूनी सहायता|dlsa|nalsa|15100/.test(text)) return 'legalAid';
+      if (/\brti\b|आरटीआई|सूचना का अधिकार|right to info/.test(text)) return 'rti';
+      if (/chori|theft|stolen|phone|snatch|fir|एफआईआर/.test(text)) return 'theft';
+      return '';
+    }
+
+    const topic = detectTopic(lower) || detectTopic(recentText);
+    const scope = detectScope(lower);
+    const answers = {
+      property: {
+        title: 'Property & Rent Issues',
+        what: 'Collect your agreement and payment proof, ask for the refund in writing, and send a legal notice if the landlord still refuses.',
+        where: 'Civil Court or Rent Tribunal. For builder matters, Consumer Court may also apply.',
+        documents: 'Rent agreement, payment receipts, bank statement, chats/emails, and photos/videos.',
+      },
+      family: {
+        title: 'Family Issues',
+        what: 'Seek immediate protection if needed, record the abuse or dispute details, and make a written complaint to the relevant authority.',
+        where: 'Family Court or Police Station, depending on the issue.',
+        documents: 'Marriage certificate, medical reports, chats/recordings, and income proof.',
+      },
+      employment: {
+        title: 'Employment Issues',
+        what: 'Keep your job records, raise a written complaint with your employer, and escalate if the issue is not resolved.',
+        where: 'Labour Court or the relevant complaints authority, depending on the issue.',
+        documents: 'Offer letter, salary slips, bank statement, emails, and complaint records.',
+      },
+      cyber: {
+        title: 'Cyber Crime',
+        what: 'Block the compromised account if possible, save the transaction details and screenshots, and report the incident immediately.',
+        where: 'Cybercrime portal, helpline 1930, or police.',
+        documents: 'Screenshots, transaction IDs, account details, phone numbers, and links.',
+      },
+      consumer: {
+        title: 'Consumer Rights',
+        what: 'Ask the seller or service provider for a refund or repair in writing, keep the complaint record, and escalate the complaint if they do not respond.',
+        where: 'Consumer Commission or eDaakhil.',
+        documents: 'Bill, warranty, complaint messages, photos, and product or service details.',
+      },
+      finance: {
+        title: 'Financial Issues',
+        what: 'Inform the bank or lender immediately, keep a written record of the issue, and file a formal complaint if the problem continues.',
+        where: 'Bank grievance cell, RBI Ombudsman, or police depending on the issue.',
+        documents: 'Bank statement, complaint reference, cheque memo, loan records, and transaction proof.',
+      },
+      traffic: {
+        title: 'Traffic Issues',
+        what: 'Record the incident details, take photos if possible, and report the matter promptly.',
+        where: 'Traffic Police, police station, insurer, or MACT depending on the issue.',
+        documents: 'Driving license, RC, insurance papers, photos, and any police report.',
+      },
+      legalAid: {
+        title: 'Free Legal Aid',
+        what: 'Apply for free legal aid through the District Legal Services Authority and explain your issue clearly.',
+        where: 'District Legal Services Authority.',
+        documents: 'Identity proof, eligibility proof, and a short summary of the issue.',
+      },
+      rti: {
+        title: 'RTI',
+        what: 'Write a clear RTI application, ask for specific information, and follow up if no reply is received in time.',
+        where: 'The concerned public authority.',
+        documents: 'RTI application, fee receipt if applicable, and previous correspondence.',
+      },
+      theft: {
+        title: 'Theft / FIR',
+        what: 'Write down what was stolen, when and where it happened, and ask the police to register an FIR or Zero FIR.',
+        where: 'Nearest police station.',
+        documents: 'ID proof, incident details, bills, photos, and any available evidence.',
+      },
+    };
+
+    if (!topic || !answers[topic]) {
+      fallbackReply(userText);
+      return;
+    }
+
+    const answer = answers[topic];
+    let reply = `<strong>${answer.title}:</strong><br><br><strong>What to do:</strong> ${answer.what}<br><br><strong>Where to file:</strong> ${answer.where}<br><br><strong>Documents needed:</strong> ${answer.documents}`;
+    if (scope === 'what') reply = `<strong>${answer.title}:</strong><br><br><strong>What to do:</strong> ${answer.what}`;
+    else if (scope === 'where') reply = `<strong>${answer.title}:</strong><br><br><strong>Where to file:</strong> ${answer.where}`;
+    else if (scope === 'documents') reply = `<strong>${answer.title}:</strong><br><br><strong>Documents needed:</strong> ${answer.documents}`;
+
+    addMessage(reply, false, 'html');
+    speakAssistantReplyInBrowser(reply);
+  }
+
   function handleOutgoingChatMessage(text) {
     if (!text) return;
     addMessage(text, true, 'text');
     if (vapiInstance) {
       sendToVapiChat(text).then(sent => {
-        if (!sent) fallbackReply(text);
+        if (!sent) contextualFallbackReply(text);
       });
       return;
     }
-    fallbackReply(text);
+    contextualFallbackReply(text);
   }
 
   on(sendBtn, 'click', () => {
@@ -889,6 +997,7 @@
           location: location,
           suspect_description: suspect || 'Unknown',
           witness: witness || 'None',
+          language: getLang(),
           complainant_id: userId,
         },
       });

@@ -1378,8 +1378,11 @@ def generate_document_content(doc_type: str, details: dict) -> str:
     location = details.get("location", "Location not specified")
     suspect = details.get("suspect_description", "Unknown")
     witness = details.get("witness", "None provided")
+    language = str(details.get("language", "en")).lower()
 
     if doc_type == "FIR":
+        if language == "hi":
+            return _fir_template_hi(complainant, incident, date_time, location, suspect, witness)
         return _fir_template(complainant, incident, date_time, location, suspect, witness)
     elif "Domestic Violence" in doc_type:
         return _dv_template(complainant, incident, date_time, location, suspect)
@@ -1422,6 +1425,42 @@ Yours faithfully,
 {complainant}
 
 Note: Under Section 154 of CrPC, the police are legally bound to register this FIR. Refusal to do so is punishable under Section 166A IPC with imprisonment up to 2 years.
+"""
+
+
+def _fir_template_hi(complainant, incident, date_time, location, suspect, witness):
+    return f"""प्रथम सूचना रिपोर्ट (एफआईआर)
+
+सेवा में,
+स्टेशन हाउस ऑफिसर,
+[निकटतम पुलिस थाना]
+
+विषय: प्रथम सूचना रिपोर्ट दर्ज करने हेतु प्रार्थना पत्र
+
+महोदय / महोदया,
+
+मैं, {complainant}, निम्नलिखित घटना के संबंध में प्राथमिकी दर्ज कराना चाहता/चाहती हूँ:
+
+घटना का विवरण:
+{incident}
+
+दिनांक और समय: {date_time}
+घटना का स्थान: {location}
+
+आरोपी का विवरण:
+{suspect}
+
+गवाह:
+{witness}
+
+कृपया इस प्राथमिकी को भारतीय दंड संहिता की उपयुक्त धाराओं के अंतर्गत दर्ज कर आवश्यक जांच शीघ्र प्रारंभ करने की कृपा करें।
+
+मैं घोषित करता/करती हूँ कि ऊपर लिखे गए तथ्य मेरी जानकारी और विश्वास के अनुसार सत्य हैं।
+
+भवदीय,
+{complainant}
+
+नोट: दंड प्रक्रिया संहिता की धारा 154 के अंतर्गत पुलिस आपके एफआईआर को दर्ज करने के लिए बाध्य है। एफआईआर दर्ज करने से मना करना भारतीय दंड संहिता की धारा 166A के अंतर्गत दंडनीय है।
 """
 
 
