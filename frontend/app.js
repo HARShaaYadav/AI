@@ -29,15 +29,24 @@
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
 
+  async function waitForVapiSdk(timeoutMs = 5000) {
+    const start = Date.now();
+    while (!window.Vapi && Date.now() - start < timeoutMs) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return window.Vapi || null;
+  }
+
   async function initVapi() {
     // Use public key directly (Vapi public key is safe to embed in frontend)
     vapiPublicKey = '79d4aa17-ee30-45af-8aa4-6d769a1b794e';
-    if (vapiPublicKey && window.Vapi) {
-      vapiInstance = new window.Vapi(vapiPublicKey);
+    const VapiSdk = await waitForVapiSdk();
+    if (vapiPublicKey && VapiSdk) {
+      vapiInstance = new VapiSdk(vapiPublicKey);
       console.info('Vapi initialized successfully');
       setupVapiEvents();
     } else {
-      console.warn('Vapi not initialized', { hasPublicKey: !!vapiPublicKey, hasSdk: !!window.Vapi });
+      console.warn('Vapi not initialized', { hasPublicKey: !!vapiPublicKey, hasSdk: !!VapiSdk });
     }
   }
 
