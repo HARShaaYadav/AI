@@ -9,7 +9,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 QDRANT_URL = os.getenv("QDRANT_URL", ":memory:")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 BACKEND_URL = os.getenv("BACKEND_URL", "https://aivoice.up.railway.app")
-PRIMARY_LLM_MODEL = os.getenv("PRIMARY_LLM_MODEL", "gpt-5.1")
+PRIMARY_LLM_MODEL = os.getenv("PRIMARY_LLM_MODEL", "gpt-4.1-mini")
 PRIMARY_LLM_TEMPERATURE = float(os.getenv("PRIMARY_LLM_TEMPERATURE", "0.4"))
 
 USE_MEMORY_QDRANT = QDRANT_URL.strip() in ("", ":memory:")
