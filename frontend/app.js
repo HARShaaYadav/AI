@@ -28,6 +28,10 @@
   let recentSpokenAssistantTexts = [];
   let lastSpeechStartAt = 0;
   let pendingSpeechFallbackTimer = null;
+  let pendingSpeechRequestId = 0;
+  let activeSpeechRequestId = 0;
+  let browserSpeechActive = false;
+  let currentBrowserUtterance = null;
   let vapiUnavailableReason = null;
   let browserVoiceFallbackEnabled = true;
 
@@ -57,17 +61,13 @@
 
     vapiInstance.on('speech-start', () => {
       lastSpeechStartAt = Date.now();
-      if (pendingSpeechFallbackTimer) {
-        clearTimeout(pendingSpeechFallbackTimer);
-        pendingSpeechFallbackTimer = null;
-      }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      clearPendingSpeechFallback();
+      stopBrowserSpeech();
       newMicBtn.classList.add('listening');
       newMicStatus.textContent = t('vcListening');
     });
     vapiInstance.on('speech-end', () => {
+      clearPendingSpeechFallback();
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcProcessing');
     });
@@ -102,24 +102,42 @@
       }
     });
     vapiInstance.on('call-end', () => {
+      const shouldFallbackToBrowser = !!pendingSpeechFallbackTimer && !browserSpeechActive;
+      clearPendingSpeechFallback();
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
       vapiCallActive = false;
       vapiSessionMode = null;
       vapiSessionLanguage = null;
+      if (shouldFallbackToBrowser && conversationHistory.length) {
+        const lastAssistantMessage = [...conversationHistory].reverse().find(msg => msg.role === 'assistant' && msg.text);
+        if (lastAssistantMessage) {
+          console.warn('Vapi call ended before speaking completed, using browser speech fallback');
+          startBrowserSpeechFallback(lastAssistantMessage.text, activeSpeechRequestId);
+        }
+      }
     });
     vapiInstance.on('error', (err) => {
       console.error('Vapi error:', err);
+      const shouldFallbackToBrowser = !!pendingSpeechFallbackTimer && !browserSpeechActive;
       if (err && err.type === 'daily-error') {
         vapiUnavailableReason = 'daily_limit_reached';
         console.warn('Vapi unavailable for this session: daily limit reached or account quota exhausted');
       }
+      clearPendingSpeechFallback();
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
       vapiCallActive = false;
       vapiSessionMode = null;
       vapiSessionLanguage = null;
       removeTypingIndicator();
+      if (shouldFallbackToBrowser && conversationHistory.length) {
+        const lastAssistantMessage = [...conversationHistory].reverse().find(msg => msg.role === 'assistant' && msg.text);
+        if (lastAssistantMessage) {
+          console.warn('Vapi errored before speech playback, using browser speech fallback');
+          startBrowserSpeechFallback(lastAssistantMessage.text, activeSpeechRequestId);
+        }
+      }
     });
   }
 
@@ -185,6 +203,8 @@
   function switchLang(code) {
     applyLang(code);
     [langSwitch, langMobile, settingsLang].forEach(sel => { if (sel) sel.value = code; });
+    clearPendingSpeechFallback();
+    stopBrowserSpeech();
     if (vapiInstance && vapiCallActive) {
       try {
         vapiInstance.stop();
@@ -339,14 +359,34 @@
     recentSpokenAssistantTexts.push({ text: normalizeText(text), ts: Date.now() });
   }
 
-  async function speakAssistantReplyWithVapi(text) {
-    if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text) || vapiUnavailableReason) return false;
-    rememberSpokenAssistantText(text);
-    const requestedAt = Date.now();
+  function clearPendingSpeechFallback() {
     if (pendingSpeechFallbackTimer) {
       clearTimeout(pendingSpeechFallbackTimer);
       pendingSpeechFallbackTimer = null;
     }
+  }
+
+  function stopBrowserSpeech() {
+    if (!('speechSynthesis' in window)) return;
+    browserSpeechActive = false;
+    currentBrowserUtterance = null;
+    window.speechSynthesis.cancel();
+  }
+
+  function startBrowserSpeechFallback(text, requestId) {
+    if (!browserVoiceFallbackEnabled) return false;
+    if (requestId && requestId !== activeSpeechRequestId) return false;
+    speakAssistantReplyInBrowser(text, requestId);
+    return true;
+  }
+
+  async function speakAssistantReplyWithVapi(text) {
+    if (!vapiInstance || !text || hasRecentlySpokenAssistantText(text) || vapiUnavailableReason) return false;
+    rememberSpokenAssistantText(text);
+    const requestId = ++pendingSpeechRequestId;
+    activeSpeechRequestId = requestId;
+    const requestedAt = Date.now();
+    clearPendingSpeechFallback();
     try {
       await ensureVapiSession('chat');
       vapiSessionMode = 'chat';
@@ -364,16 +404,18 @@
     if (!browserVoiceFallbackEnabled) return true;
 
     pendingSpeechFallbackTimer = setTimeout(() => {
+      if (requestId !== activeSpeechRequestId || browserSpeechActive) return;
       if (lastSpeechStartAt < requestedAt) {
         console.warn('Vapi speech did not start in time, falling back to browser speech');
-        speakAssistantReplyInBrowser(text);
+        startBrowserSpeechFallback(text, requestId);
       }
-    }, 8000);
+    }, 3500);
     return true;
   }
 
-  function speakAssistantReplyInBrowser(text) {
+  function speakAssistantReplyInBrowser(text, requestId = null) {
     if (!('speechSynthesis' in window) || !text) return;
+    if (requestId && requestId !== activeSpeechRequestId) return;
     console.info('Voice output source: browser_speech_fallback');
 
     try {
@@ -383,12 +425,31 @@
         .replace(/\s+/g, ' ')
         .trim();
       if (!cleanedText) return;
+      clearPendingSpeechFallback();
+      browserSpeechActive = true;
       const utterance = new SpeechSynthesisUtterance(cleanedText);
+      currentBrowserUtterance = utterance;
       utterance.lang = getSpeechLang();
       utterance.rate = 1;
-      window.speechSynthesis.cancel();
+      utterance.onend = () => {
+        if (currentBrowserUtterance === utterance) {
+          browserSpeechActive = false;
+          currentBrowserUtterance = null;
+        }
+      };
+      utterance.onerror = () => {
+        if (currentBrowserUtterance === utterance) {
+          browserSpeechActive = false;
+          currentBrowserUtterance = null;
+        }
+      };
+      stopBrowserSpeech();
+      browserSpeechActive = true;
+      currentBrowserUtterance = utterance;
       window.speechSynthesis.speak(utterance);
     } catch (err) {
+      browserSpeechActive = false;
+      currentBrowserUtterance = null;
       console.error('Browser speech fallback failed:', err);
     }
   }
@@ -399,6 +460,8 @@
     const needsRestart = vapiCallActive && (vapiSessionMode !== mode || vapiSessionLanguage !== currentLang);
 
     if (needsRestart) {
+      clearPendingSpeechFallback();
+      stopBrowserSpeech();
       try {
         vapiInstance.stop();
       } catch (err) {
@@ -1003,6 +1066,8 @@
 
   function startVapiCall() {
     if (newMicBtn.classList.contains('listening') || (vapiCallActive && vapiSessionMode === 'voice')) {
+      clearPendingSpeechFallback();
+      stopBrowserSpeech();
       vapiInstance.stop();
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
