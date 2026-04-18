@@ -56,6 +56,13 @@
 
     vapiInstance.on('speech-start', () => {
       lastSpeechStartAt = Date.now();
+      if (pendingSpeechFallbackTimer) {
+        clearTimeout(pendingSpeechFallbackTimer);
+        pendingSpeechFallbackTimer = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       newMicBtn.classList.add('listening');
       newMicStatus.textContent = t('vcListening');
     });
@@ -358,7 +365,7 @@
         console.warn('Vapi speech did not start in time, falling back to browser speech');
         speakAssistantReplyInBrowser(text);
       }
-    }, 4000);
+    }, 6500);
     return true;
   }
 

@@ -12,6 +12,7 @@ from typing import Dict, List, Any, Optional
 from backend.config import (
     SUPPORTED_LANGUAGES,
     EMERGENCY_KEYWORDS,
+    GOOGLE_GENAI_API_KEY,
     OPENROUTER_API_KEY,
     OPENAI_API_KEY,
     PRIMARY_LLM_MODEL,
@@ -22,7 +23,7 @@ from backend.services.qdrant import search_legal_knowledge, get_user_memory
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = GOOGLE_GENAI_API_KEY
 
 TOPIC_LABELS = {
     "theft": "theft",
@@ -263,7 +264,12 @@ def generate_response(
             )
             reply, openai_error = _generate_with_primary_llm(user_message, context_str, detected_lang, conversation)
             if reply:
-                source = "openrouter" if OPENROUTER_API_KEY else "openai"
+                if GEMINI_API_KEY and PRIMARY_LLM_MODEL.startswith("gemini"):
+                    source = "gemini"
+                elif OPENAI_API_KEY:
+                    source = "openai"
+                else:
+                    source = "openrouter"
                 source_detail = "primary_llm"
             else:
                 source_detail = openai_error
@@ -305,14 +311,16 @@ def generate_response(
 
 
 def _primary_llm_available() -> bool:
-    return bool(OPENROUTER_API_KEY or OPENAI_API_KEY)
+    return bool(GEMINI_API_KEY or OPENAI_API_KEY or OPENROUTER_API_KEY)
 
 
 def _generate_with_primary_llm(user_message: str, context: str, lang: str, conversation: list) -> tuple[str, str | None]:
-    if OPENROUTER_API_KEY:
-        return _generate_with_openrouter(user_message, context, lang, conversation)
+    if GEMINI_API_KEY and PRIMARY_LLM_MODEL.startswith("gemini"):
+        return _generate_with_gemini(user_message, context, lang, conversation)
     if OPENAI_API_KEY:
         return _generate_with_openai(user_message, context, lang, conversation)
+    if OPENROUTER_API_KEY:
+        return _generate_with_openrouter(user_message, context, lang, conversation)
     return "", "llm_not_configured"
 
 
@@ -417,15 +425,15 @@ def _generate_with_openai(user_message: str, context: str, lang: str, conversati
         return "", "openai_request_failed"
 
 
-def _generate_with_gemini(user_message: str, context: str, lang: str, conversation: list) -> str:
-    """Fallback Gemini path using the same shared system prompt."""
+def _generate_with_gemini(user_message: str, context: str, lang: str, conversation: list) -> tuple[str, str | None]:
+    """Gemini path using the shared system prompt."""
     messages = _build_llm_messages(user_message, context, lang, conversation)
     prompt_parts = [f"System: {messages[0]['content']}"]
     for msg in messages[1:]:
         role = "User" if msg["role"] == "user" else "NyayaVoice"
         prompt_parts.append(f"{role}: {msg['content']}")
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{PRIMARY_LLM_MODEL}:generateContent?key={GEMINI_API_KEY}"
     payload = {
         "contents": [{"parts": [{"text": "\n\n".join(prompt_parts)}]}],
         "generationConfig": {"temperature": PRIMARY_LLM_TEMPERATURE}
@@ -433,12 +441,30 @@ def _generate_with_gemini(user_message: str, context: str, lang: str, conversati
 
     try:
         resp = requests.post(url, json=payload, timeout=15)
-        resp.raise_for_status()
+        if not resp.ok:
+            source_detail = None
+            try:
+                error_data = resp.json()
+                source_detail = (
+                    error_data.get("error", {}).get("status")
+                    or error_data.get("error", {}).get("message")
+                )
+            except Exception:
+                source_detail = None
+            logger.error(
+                "Gemini generation failed: status=%s model=%s body=%s",
+                resp.status_code,
+                PRIMARY_LLM_MODEL,
+                resp.text[:1000],
+            )
+            resp.raise_for_status()
         data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip(), None
     except Exception as e:
-        logger.error(f"Gemini generation failed: {e}")
-        return ""
+        logger.error("Gemini generation failed: model=%s error=%s", PRIMARY_LLM_MODEL, e)
+        if "source_detail" in locals() and source_detail:
+            return "", f"gemini_{source_detail}"
+        return "", "gemini_request_failed"
 
 
 def get_retrieval_candidates(user_message: str, intent: str = "") -> list:
