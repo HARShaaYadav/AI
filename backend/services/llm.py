@@ -179,6 +179,15 @@ def detect_intent(user_message: str) -> Dict[str, Any]:
             "summary": user_message[:100],
         }
 
+    if _looks_like_rent_deposit_query(lower):
+        detected_lang = "hi" if any("\u0900" <= c <= "\u097F" for c in user_message) else "en"
+        return {
+            "intent": "property_rent",
+            "language": detected_lang,
+            "urgency": urgency,
+            "summary": user_message[:100],
+        }
+
     detected_intent = "general_legal_query"
     for intent, pattern in INTENT_PATTERNS.items():
         if re.search(pattern, lower, re.IGNORECASE):
@@ -234,6 +243,14 @@ def generate_response(
         strong_results = [r for r in legal_results if r["score"] >= 0.25]
         strong_intent_results = [r for r in intent_results if r["score"] >= 0.25]
         response_results = strong_intent_results or intent_results or strong_results
+
+        if intent == "property_rent" and _looks_like_rent_deposit_query(user_message.lower()):
+            deposit_specific_results = [
+                r for r in legal_results
+                if r.get("category") == "property_rent" and r.get("score", 0) > 0.2
+            ]
+            if deposit_specific_results:
+                response_results = deposit_specific_results[:3]
 
         source = "backend_fallback"
         source_detail = None
@@ -426,6 +443,15 @@ def _generate_with_gemini(user_message: str, context: str, lang: str, conversati
 
 def get_retrieval_candidates(user_message: str, intent: str = "") -> list:
     candidates = [user_message.strip()]
+    lower = user_message.lower()
+    if intent == "property_rent" and _looks_like_rent_deposit_query(lower):
+        targeted_queries = [
+            "landlord not returning security deposit rent agreement legal notice India",
+            "tenant deposit refund complaint rent tribunal civil court India",
+        ]
+        for query in targeted_queries:
+            if query not in candidates:
+                candidates.append(query)
     if intent:
         for query in INTENT_FALLBACK_QUERIES.get(intent, []):
             if query not in candidates:
@@ -1470,6 +1496,17 @@ def _looks_like_theft_or_fir_query(lower: str) -> bool:
         )
     )
     return (has_reporting and has_missing_property) or (has_where_to_go and has_missing_property)
+
+
+def _looks_like_rent_deposit_query(lower: str) -> bool:
+    landlord_terms = ("landlord", "owner", "tenant", "rent agreement", "lease", "rental")
+    deposit_terms = ("deposit", "security deposit", "refund", "advance", "not returning", "deduct", "deduction")
+    rent_terms = ("rent", "vacate", "move out", "handover", "rented house", "flat")
+    has_landlord_context = any(term in lower for term in landlord_terms)
+    has_deposit_context = any(term in lower for term in deposit_terms)
+    has_rent_context = any(term in lower for term in rent_terms)
+    return has_deposit_context and (has_landlord_context or has_rent_context)
+
 
 def _normalize_reply(reply: str, lang: str) -> str:
     text = (reply or "").strip()
