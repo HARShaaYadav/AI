@@ -21,12 +21,21 @@ os.makedirs(DOCS_DIR, exist_ok=True)
 FONT_CANDIDATES = [
     ("NotoSansDevanagari", "NotoSansDevanagari-Regular.ttf"),
     ("NotoSansDevanagari", "NotoSansDevanagari-Medium.ttf"),
+    ("NirmalaUI", "Nirmala.ttc", 0),
     ("NirmalaUI", os.path.join("C:\\", "Windows", "Fonts", "Nirmala.ttc"), 0),
     ("NirmalaUI", os.path.join("C:\\", "Windows", "Fonts", "Nirmala.ttf")),
     ("Mangal", os.path.join("C:\\", "Windows", "Fonts", "Mangal.ttf")),
     ("Aparajita", os.path.join("C:\\", "Windows", "Fonts", "Aparaj.ttf")),
     ("Kokila", os.path.join("C:\\", "Windows", "Fonts", "Kokila.ttf")),
 ]
+
+DETAIL_LABELS_HI = {
+    "incident_description": "घटना का विवरण",
+    "date_time": "दिनांक और समय",
+    "location": "स्थान",
+    "suspect_description": "आरोपी का विवरण",
+    "witness": "गवाह",
+}
 
 
 def _contains_devanagari(text: str) -> bool:
@@ -161,7 +170,6 @@ def generate_pdf(user_id: str, doc_type: str, content: str, details: dict) -> st
             spaceAfter=4,
         )
 
-        story = []
         case_details_heading = "CASE DETAILS" if language != "hi" else "मामले का विवरण"
         complaint_heading = "COMPLAINT / STATEMENT" if language != "hi" else "शिकायत / बयान"
         generated_label = "Generated" if language != "hi" else "तैयार किया गया"
@@ -169,6 +177,7 @@ def generate_pdf(user_id: str, doc_type: str, content: str, details: dict) -> st
         signature_label = "Complainant Signature" if language != "hi" else "शिकायतकर्ता के हस्ताक्षर"
         date_label = "Date" if language != "hi" else "दिनांक"
 
+        story = []
         story.append(Paragraph("NyayaVoice - Voice Legal Aid Assistant", header_style))
         story.append(
             Paragraph(
@@ -188,7 +197,7 @@ def generate_pdf(user_id: str, doc_type: str, content: str, details: dict) -> st
             story.append(Paragraph(case_details_heading, section_style))
             for key, value in details.items():
                 if value and key not in ("complainant_id", "language"):
-                    label = key.replace("_", " ").title()
+                    label = DETAIL_LABELS_HI.get(key, key.replace("_", " ").title()) if language == "hi" else key.replace("_", " ").title()
                     story.append(Paragraph(f"{_safe_text(label)}: {_safe_text(value)}", detail_style))
             story.append(Spacer(1, 0.4 * cm))
 
