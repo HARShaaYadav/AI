@@ -722,6 +722,9 @@ def _intent_guidance(intent: str, user_message: str, lang: str) -> str:
     if intent == "theft_complaint":
         return _theft_guidance(lang)
     if intent == "property_rent":
+        deposit_reply = _deposit_refund_guidance(user_message, lang)
+        if deposit_reply:
+            return deposit_reply
         return _property_rent_guidance(user_message, lang)
     if intent == "family_personal":
         return _family_personal_guidance(user_message, lang)
@@ -785,6 +788,38 @@ def _theft_guidance(lang: str) -> str:
         "- Keep the basic facts ready: what was stolen, when, where, and any proof you have.\n"
         "- Take a free copy of the FIR after registration.\n\n"
         "If you want, I can help draft the theft complaint for you."
+    )
+
+
+def _deposit_refund_guidance(user_message: str, lang: str) -> str:
+    lower = user_message.lower()
+    keywords = [
+        "deposit",
+        "security deposit",
+        "advance",
+        "refund",
+        "not returning",
+        "return my money",
+        "deduct",
+        "deduction",
+    ]
+    if not any(keyword in lower for keyword in keywords):
+        return ""
+
+    if lang == "hi":
+        return (
+            "- अगर मकान मालिक आपका deposit वापस नहीं कर रहा है, तो पहले rent agreement में refund, notice period, damage deduction, और move-out terms देखें.\n"
+            "- Agreement, deposit payment proof, rent receipts, bank statement, chats/messages, move-out photos/videos, और handover proof सुरक्षित रखें.\n"
+            "- पहले written notice या legal notice भेजकर deposit refund साफ़ शब्दों में माँगें और payment के लिए reasonable time दें.\n"
+            "- अगर फिर भी refund नहीं मिलता, तो area के हिसाब से Rent Authority/Rent Tribunal या Civil Court में शिकायत या recovery case पर विचार किया जा सकता है.\n\n"
+            "अगर आप चाहें, तो मैं landlord को भेजने के लिए deposit-refund notice draft कर सकता हूँ."
+        )
+    return (
+        "- If your landlord is not returning your deposit, first check the rent agreement for refund, notice-period, damage-deduction, and move-out terms.\n"
+        "- Keep the agreement, deposit payment proof, rent receipts, bank statement, chats/messages, move-out photos/videos, and handover proof safely.\n"
+        "- Send a written notice or legal notice clearly asking for the deposit refund and give a reasonable deadline for payment.\n"
+        "- If the deposit is still not returned, you may need to approach the Rent Authority/Rent Tribunal or the Civil Court, depending on your area and the tenancy setup.\n\n"
+        "If you want, I can also draft a deposit-refund notice to the landlord."
     )
 
 
