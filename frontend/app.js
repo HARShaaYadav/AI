@@ -32,6 +32,7 @@
   let activeSpeechRequestId = 0;
   let browserSpeechActive = false;
   let currentBrowserUtterance = null;
+  let pendingVapiSpeech = null;
   let vapiUnavailableReason = null;
   let browserVoiceFallbackEnabled = true;
 
@@ -61,6 +62,18 @@
 
     vapiInstance.on('speech-start', () => {
       lastSpeechStartAt = Date.now();
+      if (browserSpeechActive) {
+        console.info('Browser fallback is still speaking, postponing Vapi speech');
+        try {
+          vapiInstance.stop();
+        } catch (err) {
+          console.error('Vapi stop while waiting for browser speech failed:', err);
+        }
+        vapiCallActive = false;
+        vapiSessionMode = null;
+        vapiSessionLanguage = null;
+        return;
+      }
       clearPendingSpeechFallback();
       stopBrowserSpeech();
       newMicBtn.classList.add('listening');
@@ -376,8 +389,28 @@
   function startBrowserSpeechFallback(text, requestId) {
     if (!browserVoiceFallbackEnabled) return false;
     if (requestId && requestId !== activeSpeechRequestId) return false;
+    pendingVapiSpeech = text ? { text, requestId: requestId || activeSpeechRequestId } : null;
     speakAssistantReplyInBrowser(text, requestId);
     return true;
+  }
+
+  async function replayPendingVapiSpeech() {
+    if (!pendingVapiSpeech || browserSpeechActive || !vapiInstance || vapiUnavailableReason) return;
+    const queuedSpeech = pendingVapiSpeech;
+    pendingVapiSpeech = null;
+    if (queuedSpeech.requestId !== activeSpeechRequestId) return;
+    try {
+      await ensureVapiSession('chat');
+      vapiSessionMode = 'chat';
+      console.info('Replaying deferred Vapi speech after browser fallback finished');
+      vapiInstance.send({
+        type: 'say',
+        content: queuedSpeech.text,
+        endCallAfterSpoken: false,
+      });
+    } catch (err) {
+      console.error('Deferred Vapi speech replay failed:', err);
+    }
   }
 
   async function speakAssistantReplyWithVapi(text) {
@@ -435,12 +468,14 @@
         if (currentBrowserUtterance === utterance) {
           browserSpeechActive = false;
           currentBrowserUtterance = null;
+          replayPendingVapiSpeech();
         }
       };
       utterance.onerror = () => {
         if (currentBrowserUtterance === utterance) {
           browserSpeechActive = false;
           currentBrowserUtterance = null;
+          pendingVapiSpeech = null;
         }
       };
       stopBrowserSpeech();
