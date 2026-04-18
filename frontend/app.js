@@ -454,8 +454,17 @@
         conversation: previousConversation,
       });
       console.info('Chat response source:', result.source);
+      console.info('Chat response detail:', result.source_detail);
 
       removeTypingIndicator();
+
+      if (result.source === 'backend_fallback' && result.source_detail === 'insufficient_quota') {
+        addMessage(
+          'OpenAI is temporarily unavailable because the API quota is exhausted. Showing the backend fallback response below.',
+          false,
+          'text'
+        );
+      }
 
       if (!isDuplicateConversationTurn('assistant', result.response)) {
         addMessage(result.response, false, 'markdown');

@@ -12,6 +12,7 @@ from typing import Dict, List, Any, Optional
 from backend.config import (
     SUPPORTED_LANGUAGES,
     EMERGENCY_KEYWORDS,
+    OPENROUTER_API_KEY,
     OPENAI_API_KEY,
     PRIMARY_LLM_MODEL,
     PRIMARY_LLM_TEMPERATURE,
@@ -223,6 +224,7 @@ def generate_response(
                 "follow_up": False,
                 "urgency": True,
                 "source": "backend_fallback",
+                "source_detail": "emergency_path",
             }
 
         legal_results = _search_legal_knowledge_with_fallback(user_message, intent, top_k=6)
@@ -234,6 +236,7 @@ def generate_response(
         response_results = strong_intent_results or intent_results or strong_results
 
         source = "backend_fallback"
+        source_detail = None
 
         if _primary_llm_available():
             # Use the configured primary LLM so Vapi and backend text chat stay aligned.
@@ -241,10 +244,12 @@ def generate_response(
             context_str = "\n".join(
                 [f"[{r['category'].title()}] {r['content']}" for r in context_source if r["score"] > 0.2]
             )
-            reply = _generate_with_primary_llm(user_message, context_str, detected_lang, conversation)
+            reply, openai_error = _generate_with_primary_llm(user_message, context_str, detected_lang, conversation)
             if reply:
-                source = "openai"
+                source = "openrouter" if OPENROUTER_API_KEY else "openai"
+                source_detail = "primary_llm"
             else:
+                source_detail = openai_error
                 # Fallback if Gemini fails
                 if response_results:
                     reply = _build_grounded_response(user_message, response_results, intent, detected_lang)
@@ -267,6 +272,7 @@ def generate_response(
             "follow_up": True,
             "urgency": False,
             "source": source,
+            "source_detail": source_detail,
         }
     except Exception as e:
         logger.error(f"Error generating response for user {user_id}: {str(e)}", exc_info=True)
@@ -277,17 +283,62 @@ def generate_response(
             "follow_up": False,
             "urgency": False,
             "source": "backend_fallback",
+            "source_detail": "internal_error",
         }
 
 
 def _primary_llm_available() -> bool:
-    return bool(OPENAI_API_KEY)
+    return bool(OPENROUTER_API_KEY or OPENAI_API_KEY)
 
 
-def _generate_with_primary_llm(user_message: str, context: str, lang: str, conversation: list) -> str:
+def _generate_with_primary_llm(user_message: str, context: str, lang: str, conversation: list) -> tuple[str, str | None]:
+    if OPENROUTER_API_KEY:
+        return _generate_with_openrouter(user_message, context, lang, conversation)
     if OPENAI_API_KEY:
         return _generate_with_openai(user_message, context, lang, conversation)
-    return ""
+    return "", "llm_not_configured"
+
+
+def _generate_with_openrouter(user_message: str, context: str, lang: str, conversation: list) -> tuple[str, str | None]:
+    """Make REST API call to OpenRouter using the OpenAI-compatible endpoint."""
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    payload = {
+        "model": PRIMARY_LLM_MODEL,
+        "messages": _build_llm_messages(user_message, context, lang, conversation),
+        "temperature": PRIMARY_LLM_TEMPERATURE,
+    }
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=20)
+        if not resp.ok:
+            source_detail = None
+            try:
+                error_data = resp.json()
+                source_detail = (
+                    error_data.get("error", {}).get("code")
+                    or error_data.get("error", {}).get("type")
+                    or error_data.get("error", {}).get("message")
+                )
+            except Exception:
+                source_detail = None
+            logger.error(
+                "OpenRouter generation failed: status=%s model=%s body=%s",
+                resp.status_code,
+                PRIMARY_LLM_MODEL,
+                resp.text[:1000],
+            )
+            resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"].strip(), None
+    except Exception as e:
+        logger.error("OpenRouter generation failed: model=%s error=%s", PRIMARY_LLM_MODEL, e)
+        if "source_detail" in locals() and source_detail:
+            return "", f"openrouter_{source_detail}"
+        return "", "openrouter_request_failed"
 
 
 def _build_llm_messages(user_message: str, context: str, lang: str, conversation: list) -> list:
@@ -311,7 +362,7 @@ def _build_llm_messages(user_message: str, context: str, lang: str, conversation
     return messages
 
 
-def _generate_with_openai(user_message: str, context: str, lang: str, conversation: list) -> str:
+def _generate_with_openai(user_message: str, context: str, lang: str, conversation: list) -> tuple[str, str | None]:
     """Make REST API call to OpenAI using the shared prompt and primary model."""
     url = "https://api.openai.com/v1/chat/completions"
     payload = {
@@ -327,6 +378,12 @@ def _generate_with_openai(user_message: str, context: str, lang: str, conversati
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=20)
         if not resp.ok:
+            source_detail = None
+            try:
+                error_data = resp.json()
+                source_detail = error_data.get("error", {}).get("type")
+            except Exception:
+                source_detail = None
             logger.error(
                 "OpenAI generation failed: status=%s model=%s body=%s",
                 resp.status_code,
@@ -335,10 +392,12 @@ def _generate_with_openai(user_message: str, context: str, lang: str, conversati
             )
             resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"].strip()
+        return data["choices"][0]["message"]["content"].strip(), None
     except Exception as e:
         logger.error("OpenAI generation failed: model=%s error=%s", PRIMARY_LLM_MODEL, e)
-        return ""
+        if "source_detail" in locals() and source_detail:
+            return "", source_detail
+        return "", "openai_request_failed"
 
 
 def _generate_with_gemini(user_message: str, context: str, lang: str, conversation: list) -> str:
