@@ -814,24 +814,26 @@
     if (target) { target.style.display = ''; target.classList.add('active'); }
   }
 
-  firWizard.addEventListener('click', e => {
-    if (e.target.classList.contains('wizard-next')) {
-      if (firStep === 1 && !document.getElementById('firIncident').value.trim()) {
-        alert(t('alertIncident')); return;
+  if (firWizard) {
+    firWizard.addEventListener('click', e => {
+      if (e.target.classList.contains('wizard-next')) {
+        if (firStep === 1 && !document.getElementById('firIncident').value.trim()) {
+          alert(t('alertIncident')); return;
+        }
+        if (firStep === 2 && !document.getElementById('firDate').value) {
+          alert(t('alertDate')); return;
+        }
+        if (firStep === 3 && !document.getElementById('firLocation').value.trim()) {
+          alert(t('alertLocation')); return;
+        }
+        if (firStep < 5) showFirStep(firStep + 1);
+        if (firStep === 5) buildFirReview();
       }
-      if (firStep === 2 && !document.getElementById('firDate').value) {
-        alert(t('alertDate')); return;
+      if (e.target.classList.contains('wizard-back')) {
+        if (firStep > 1) showFirStep(firStep - 1);
       }
-      if (firStep === 3 && !document.getElementById('firLocation').value.trim()) {
-        alert(t('alertLocation')); return;
-      }
-      if (firStep < 5) showFirStep(firStep + 1);
-      if (firStep === 5) buildFirReview();
-    }
-    if (e.target.classList.contains('wizard-back')) {
-      if (firStep > 1) showFirStep(firStep - 1);
-    }
-  });
+    });
+  }
 
   function buildFirReview() {
     const lang = getLang();
@@ -849,7 +851,8 @@
   }
 
   /* ── FIR Generate — calls backend /generate-document ───── */
-  document.getElementById('firGenerateBtn').addEventListener('click', async () => {
+  const firGenerateBtn = document.getElementById('firGenerateBtn');
+  if (firGenerateBtn) firGenerateBtn.addEventListener('click', async () => {
     const incident = document.getElementById('firIncident').value;
     const date = document.getElementById('firDate').value;
     const location = document.getElementById('firLocation').value;
@@ -899,13 +902,14 @@
     }
   });
 
-  document.getElementById('firNewBtn').addEventListener('click', () => {
+  const firNewBtn = document.getElementById('firNewBtn');
+  if (firNewBtn) firNewBtn.addEventListener('click', () => {
     ['firIncident', 'firDate', 'firLocation', 'firSuspect', 'firWitness'].forEach(id => document.getElementById(id).value = '');
     showFirStep(1);
   });
 
   const detectBtn = document.getElementById('detectLocationBtn');
-  detectBtn.addEventListener('click', () => {
+  if (detectBtn) detectBtn.addEventListener('click', () => {
     detectBtn.querySelector('span').textContent = t('firDetecting');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -940,7 +944,8 @@
     consumer: { success: 78, time: '3-12', cost: '₹1-5K', similar: 35, won: 65, settled: 20, lost: 15, laws: ['CPA 2019', 'Legal Metrology Act', 'FSSAI Act'] }
   };
 
-  document.getElementById('predictBtn').addEventListener('click', () => {
+  const predictBtn = document.getElementById('predictBtn');
+  if (predictBtn) predictBtn.addEventListener('click', () => {
     const caseType = document.getElementById('predictCaseType').value;
     if (!caseType) { alert(t('alertCaseType')); return; }
 
@@ -985,7 +990,8 @@
     consumer: { base: 25, laws: ['CPA 2019', 'Legal Metrology Act'] }
   };
 
-  document.getElementById('riskCalcBtn').addEventListener('click', () => {
+  const riskCalcBtn = document.getElementById('riskCalcBtn');
+  if (riskCalcBtn) riskCalcBtn.addEventListener('click', () => {
     const category = document.getElementById('riskCategory').value;
     if (!document.getElementById('riskSituation').value.trim()) { alert(t('alertSituation')); return; }
 
@@ -1090,7 +1096,8 @@
   });
 
   /* ── CLEAR DATA ────────────────────────────────────────── */
-  document.getElementById('clearDataBtn').addEventListener('click', () => {
+  const clearDataBtn = document.getElementById('clearDataBtn');
+  if (clearDataBtn) clearDataBtn.addEventListener('click', () => {
     const msg = getLang() === 'hi' ? 'क्या आप वाकई सारा डेटा मिटाना चाहते हैं?' : 'Are you sure you want to clear all data?';
     if (confirm(msg)) { try { localStorage.clear(); } catch (_) { } location.reload(); }
   });
@@ -1274,3 +1281,4 @@
   initVapi();
 
 })();
+
