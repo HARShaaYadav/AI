@@ -46,7 +46,14 @@ async def query(req: QueryRequest) -> QueryResponse:
         )
 
         response = QueryResponse(**result)
-        logger.info(f"Query processed for user {req.user_id}: intent={response.intent}, language={response.language}")
+        logger.info(
+            "Query processed for user %s: intent=%s language=%s source=%s source_detail=%s",
+            req.user_id,
+            response.intent,
+            response.language,
+            response.source,
+            response.source_detail,
+        )
         return response
 
     except HTTPException:

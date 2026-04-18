@@ -160,6 +160,15 @@ async def vapi_webhook(request: Request):
         is_chat_mode = session_mode == "chat"
 
         target_language = get_language_name(language)
+        logger.info(
+            "Vapi assistant-request: session_mode=%s language=%s model_provider=%s model=%s voice_provider=%s transcriber=%s",
+            session_mode,
+            language,
+            "openai",
+            PRIMARY_LLM_MODEL,
+            "azure",
+            "deepgram",
+        )
 
         return JSONResponse({
             "assistant": {
@@ -214,6 +223,13 @@ async def vapi_webhook(request: Request):
         fn = message.get("functionCall", {})
         fn_name = fn.get("name", "")
         params = fn.get("parameters", {})
+        metadata = message.get("call", {}).get("metadata", {})
+        logger.info(
+            "Vapi function-call: session_mode=%s function=%s language=%s",
+            metadata.get("mode", "voice"),
+            fn_name,
+            metadata.get("language", "en"),
+        )
 
         if fn_name == "query_legal":
             from backend.services.llm import (
@@ -225,7 +241,6 @@ async def vapi_webhook(request: Request):
             if not text:
                 return _tool_result_response("Please tell me your problem.")
 
-            metadata = message.get("call", {}).get("metadata", {})
             language = metadata.get("language", "en")
             intent = detect_intent(text).get("intent", "general_legal_query")
             merged = {}

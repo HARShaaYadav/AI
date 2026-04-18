@@ -66,6 +66,7 @@
           }
         } else if (msg.role === 'assistant') {
           removeTypingIndicator();
+          console.info('Vapi assistant transcript received:', { sessionMode: vapiSessionMode, transcriptType: msg.transcriptType });
           if (!isDuplicateConversationTurn('assistant', msg.transcript)) {
             addMessage(msg.transcript, false, 'markdown');
             conversationHistory.push({ role: 'assistant', text: msg.transcript });
@@ -342,6 +343,7 @@
 
   function speakAssistantReplyInBrowser(text) {
     if (!('speechSynthesis' in window) || !text) return;
+    console.info('Voice output source: browser_speech_fallback');
 
     try {
       const cleanedText = String(text)

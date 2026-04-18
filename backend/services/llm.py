@@ -261,7 +261,7 @@ def generate_response(
             else:
                 reply = _intent_or_generic_response(user_message, intent, detected_lang)
 
-        reply += "\n\n" + _disclaimer(detected_lang)
+        reply = _normalize_reply(reply, detected_lang)
 
         store_turn(user_id, user_message, reply, intent)
 
@@ -1470,6 +1470,21 @@ def _looks_like_theft_or_fir_query(lower: str) -> bool:
         )
     )
     return (has_reporting and has_missing_property) or (has_where_to_go and has_missing_property)
+
+def _normalize_reply(reply: str, lang: str) -> str:
+    text = (reply or "").strip()
+    disclaimer_patterns = [
+        r"\*?Please note: I provide general legal information only\.[^\n]*\*?",
+        r"\*?Please note: This is general legal information only\.[^\n]*\*?",
+        r"\*?For specific legal advice, please consult a qualified lawyer\.\*?",
+        r"\*?कृपया ध्यान दें:[^\n]*\*?",
+    ]
+
+    for pattern in disclaimer_patterns:
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return text + "\n\n" + _disclaimer(lang)
 
 
 def _disclaimer(lang: str) -> str:
