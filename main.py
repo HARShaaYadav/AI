@@ -104,6 +104,15 @@ async def get_config():
     }
 
 
+@app.get("/docs/{filename}")
+async def legacy_serve_document(filename: str):
+    filename = os.path.basename(filename)
+    filepath = os.path.join(DOCS_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Document not found")
+    return FileResponse(filepath, media_type="application/pdf", filename=filename)
+
+
 @app.post("/vapi-webhook")
 async def vapi_webhook(request: Request):
     """
@@ -260,7 +269,7 @@ async def vapi_webhook(request: Request):
             content = generate_document_content(doc_type, details)
             filepath = generate_pdf(user_id=user_id, doc_type=doc_type, content=content, details=details)
             filename = os.path.basename(filepath)
-            doc_url = f"{BACKEND_URL}/docs/{filename}"
+            doc_url = f"{BACKEND_URL}/api/docs/{filename}"
 
             return _tool_result_response(f"Your {doc_type} has been generated. Download it here: {doc_url}")
 

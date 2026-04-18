@@ -5,3 +5,7 @@ venv/
 server.log
 server.err.log
 generated_docs/
+tests
+tmp8a6or7j3
+.tmp_py/
+tmp*/

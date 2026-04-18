@@ -651,6 +651,64 @@ def _clarifying_or_generic_response(user_message: str, intent: str, lang: str) -
     return _generic_guidance(lang)
 
 
+def _detect_guidance_scope(user_message: str, lang: str = "en") -> str:
+    lower = user_message.lower()
+    where_terms = ["where", "where to file", "where to complain", "where should", "kahaan", "कहाँ", "कहां"]
+    docs_terms = ["document", "documents", "proof", "evidence", "papers", "docs", "दस्तावेज", "सबूत", "प्रूफ", "कागज"]
+    what_terms = ["what", "what to do", "steps", "next step", "next steps", "how", "क्या", "क्या करें", "अगला कदम", "कैसे"]
+
+    if any(term in lower for term in docs_terms):
+        return "documents"
+    if any(term in lower for term in where_terms):
+        return "where"
+    if any(term in lower for term in what_terms):
+        return "what"
+    return "general"
+
+
+def _compose_topic_guidance(
+    user_message: str,
+    lang: str,
+    title_en: str,
+    title_hi: str,
+    what_en: str,
+    where_en: str,
+    docs_en: str,
+    what_hi: str,
+    where_hi: str,
+    docs_hi: str,
+) -> str:
+    scope = _detect_guidance_scope(user_message, lang)
+    title = title_hi if lang == "hi" else title_en
+
+    if lang == "hi":
+        sections = {
+            "what": f"**{title}**\n\n**क्या करें:** {what_hi}",
+            "where": f"**{title}**\n\n**कहाँ शिकायत करें:** {where_hi}",
+            "documents": f"**{title}**\n\n**आवश्यक दस्तावेज:** {docs_hi}",
+            "general": (
+                f"**{title}**\n\n"
+                f"**क्या करें:** {what_hi}\n\n"
+                f"**कहाँ शिकायत करें:** {where_hi}\n\n"
+                f"**आवश्यक दस्तावेज:** {docs_hi}"
+            ),
+        }
+    else:
+        sections = {
+            "what": f"**{title}**\n\n**What to do:** {what_en}",
+            "where": f"**{title}**\n\n**Where to file:** {where_en}",
+            "documents": f"**{title}**\n\n**Documents needed:** {docs_en}",
+            "general": (
+                f"**{title}**\n\n"
+                f"**What to do:** {what_en}\n\n"
+                f"**Where to file:** {where_en}\n\n"
+                f"**Documents needed:** {docs_en}"
+            ),
+        }
+
+    return sections.get(scope, sections["general"])
+
+
 def _intent_or_generic_response(user_message: str, intent: str, lang: str) -> str:
     intent_reply = _intent_guidance(intent, user_message, lang)
     if intent_reply:
@@ -664,21 +722,21 @@ def _intent_guidance(intent: str, user_message: str, lang: str) -> str:
     if intent == "theft_complaint":
         return _theft_guidance(lang)
     if intent == "property_rent":
-        return _property_rent_guidance(lang)
+        return _property_rent_guidance(user_message, lang)
     if intent == "family_personal":
-        return _family_personal_guidance(lang)
+        return _family_personal_guidance(user_message, lang)
     if intent == "workplace_issues":
-        return _workplace_issues_guidance(lang)
+        return _workplace_issues_guidance(user_message, lang)
     if intent == "domestic_violence":
         return _domestic_violence_guidance(user_message, lang)
     if intent == "cyber_crime":
-        return _cyber_guidance(lang)
+        return _cyber_guidance(user_message, lang)
     if intent == "consumer_rights":
-        return _consumer_guidance(lang)
+        return _consumer_guidance(user_message, lang)
     if intent == "traffic_public":
-        return _traffic_public_guidance(lang)
+        return _traffic_public_guidance(user_message, lang)
     if intent == "financial_banking":
-        return _financial_banking_guidance(lang)
+        return _financial_banking_guidance(user_message, lang)
     if intent == "legal_aid":
         return _legal_aid_guidance(lang)
     if intent == "constitutional_rights":
@@ -730,7 +788,19 @@ def _theft_guidance(lang: str) -> str:
     )
 
 
-def _property_rent_guidance(lang: str) -> str:
+def _property_rent_guidance(user_message: str, lang: str) -> str:
+    return _compose_topic_guidance(
+        user_message=user_message,
+        lang=lang,
+        title_en="Property & Rent Issues",
+        title_hi="संपत्ति और किराया विवाद",
+        what_en="Collect the agreement and payment proof first, then send a legal notice.",
+        where_en="Civil Court or Rent Tribunal. For builder matters, Consumer Court may also apply.",
+        docs_en="Rent agreement, payment receipts, bank statement, chats/emails, and photos/videos.",
+        what_hi="एग्रीमेंट और पेमेंट का सबूत इकट्ठा करें, फिर लीगल नोटिस भेजें।",
+        where_hi="सिविल कोर्ट या रेंट ट्रिब्यूनल। बिल्डर मामलों में कंज्यूमर कोर्ट भी जा सकते हैं।",
+        docs_hi="किराया एग्रीमेंट, पेमेंट रसीद, बैंक स्टेटमेंट, चैट/ईमेल, और फोटो/वीडियो।",
+    )
     if lang == "hi":
         return (
             "- एग्रीमेंट, भुगतान रसीद, बैंक रिकॉर्ड, चैट, फोटो और प्रॉपर्टी पेपर सुरक्षित रखें.\n"
@@ -746,7 +816,19 @@ def _property_rent_guidance(lang: str) -> str:
     )
 
 
-def _family_personal_guidance(lang: str) -> str:
+def _family_personal_guidance(user_message: str, lang: str) -> str:
+    return _compose_topic_guidance(
+        user_message=user_message,
+        lang=lang,
+        title_en="Family Issues",
+        title_hi="पारिवारिक मामले",
+        what_en="Approach the police or relevant authority and preserve evidence.",
+        where_en="Family Court or Police Station, depending on the issue.",
+        docs_en="Marriage certificate, medical reports, chats/recordings, and income proof.",
+        what_hi="पुलिस या संबंधित अधिकारी से संपर्क करें और सबूत सुरक्षित रखें।",
+        where_hi="मामले के अनुसार फैमिली कोर्ट या पुलिस स्टेशन।",
+        docs_hi="विवाह प्रमाण पत्र, मेडिकल रिपोर्ट, चैट/रिकॉर्डिंग, और आय का प्रमाण।",
+    )
     if lang == "hi":
         return (
             "- शादी, आय, निवास, बच्चे, मेडिकल रिकॉर्ड, चैट और अन्य पारिवारिक दस्तावेज सुरक्षित रखें.\n"
@@ -762,7 +844,19 @@ def _family_personal_guidance(lang: str) -> str:
     )
 
 
-def _workplace_issues_guidance(lang: str) -> str:
+def _workplace_issues_guidance(user_message: str, lang: str) -> str:
+    return _compose_topic_guidance(
+        user_message=user_message,
+        lang=lang,
+        title_en="Employment Issues",
+        title_hi="नौकरी से जुड़ी समस्याएं",
+        what_en="Collect emails and the offer letter, then raise an internal complaint.",
+        where_en="Labour Court, or ICC for harassment complaints.",
+        docs_en="Offer letter, salary slips, bank statement, and emails.",
+        what_hi="ईमेल और ऑफर लेटर रखें, फिर कंपनी में शिकायत करें।",
+        where_hi="लेबर कोर्ट, या उत्पीड़न के मामलों में ICC।",
+        docs_hi="ऑफर लेटर, सैलरी स्लिप, बैंक स्टेटमेंट, और ईमेल।",
+    )
     if lang == "hi":
         return (
             "- Offer letter, contract, salary slips, bank statements, HR emails, PF/ESI records और complaint copies संभालकर रखें.\n"
@@ -820,7 +914,19 @@ def _domestic_violence_guidance(user_message: str, lang: str) -> str:
     )
 
 
-def _cyber_guidance(lang: str) -> str:
+def _cyber_guidance(user_message: str, lang: str) -> str:
+    return _compose_topic_guidance(
+        user_message=user_message,
+        lang=lang,
+        title_en="Cyber Crime",
+        title_hi="साइबर अपराध",
+        what_en="Report immediately and take screenshots.",
+        where_en="Cyber Crime Portal or Police Station.",
+        docs_en="Screenshots, transaction proof, bank statement, and emails.",
+        what_hi="तुरंत रिपोर्ट करें और स्क्रीनशॉट लें।",
+        where_hi="साइबर क्राइम पोर्टल या पुलिस स्टेशन।",
+        docs_hi="स्क्रीनशॉट, लेन-देन का प्रमाण, बैंक स्टेटमेंट, और ईमेल।",
+    )
     if lang == "hi":
         return (
             "- स्क्रीनशॉट, ट्रांजैक्शन आईडी, नंबर और लिंक सुरक्षित रखें.\n"
@@ -834,7 +940,19 @@ def _cyber_guidance(lang: str) -> str:
     )
 
 
-def _consumer_guidance(lang: str) -> str:
+def _consumer_guidance(user_message: str, lang: str) -> str:
+    return _compose_topic_guidance(
+        user_message=user_message,
+        lang=lang,
+        title_en="Consumer Complaints",
+        title_hi="उपभोक्ता शिकायत",
+        what_en="Keep the bill and contact the company first.",
+        where_en="Consumer Court.",
+        docs_en="Invoice or bill, payment proof, and screenshots.",
+        what_hi="बिल रखें और पहले कंपनी से संपर्क करें।",
+        where_hi="कंज्यूमर कोर्ट।",
+        docs_hi="बिल, पेमेंट प्रूफ, और स्क्रीनशॉट।",
+    )
     if lang == "hi":
         return (
             "- बिल, वारंटी और विक्रेता से हुई बात सुरक्षित रखें.\n"
@@ -848,7 +966,19 @@ def _consumer_guidance(lang: str) -> str:
     )
 
 
-def _traffic_public_guidance(lang: str) -> str:
+def _traffic_public_guidance(user_message: str, lang: str) -> str:
+    return _compose_topic_guidance(
+        user_message=user_message,
+        lang=lang,
+        title_en="Traffic Issues",
+        title_hi="ट्रैफिक मामले",
+        what_en="Gather evidence and contact the police.",
+        where_en="Traffic Police or MACT Tribunal.",
+        docs_en="Driving license, RC, insurance, and FIR.",
+        what_hi="सबूत इकट्ठा करें और पुलिस से संपर्क करें।",
+        where_hi="ट्रैफिक पुलिस या MACT ट्रिब्यूनल।",
+        docs_hi="ड्राइविंग लाइसेंस, आरसी, इंश्योरेंस, और एफआईआर।",
+    )
     if lang == "hi":
         return (
             "- Driving licence, RC, insurance, challan/FIR, फोटो, मेडिकल रिकॉर्ड और repair bills सुरक्षित रखें.\n"
@@ -864,7 +994,19 @@ def _traffic_public_guidance(lang: str) -> str:
     )
 
 
-def _financial_banking_guidance(lang: str) -> str:
+def _financial_banking_guidance(user_message: str, lang: str) -> str:
+    return _compose_topic_guidance(
+        user_message=user_message,
+        lang=lang,
+        title_en="Financial Issues",
+        title_hi="बैंकिंग और वित्तीय मामले",
+        what_en="Inform the bank immediately and keep proof.",
+        where_en="RBI Ombudsman or Police.",
+        docs_en="Bank statement, cheque plus memo, and loan documents.",
+        what_hi="तुरंत बैंक को बताएं और सबूत सुरक्षित रखें।",
+        where_hi="RBI ओम्बड्समैन या पुलिस।",
+        docs_hi="बैंक स्टेटमेंट, चेक और मेमो, और लोन दस्तावेज।",
+    )
     if lang == "hi":
         return (
             "- बैंक statements, transaction proof, loan papers, cheque copy, bounce memo, SMS/email records, और policy papers सुरक्षित रखें.\n"

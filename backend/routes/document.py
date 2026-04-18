@@ -51,7 +51,7 @@ async def generate_document(req: DocumentRequest):
     )
 
     filename = os.path.basename(filepath)
-    document_url = f"{BACKEND_URL}/docs/{filename}"
+    document_url = f"{BACKEND_URL}/api/docs/{filename}"
 
     return DocumentResponse(
         document_url=document_url,
