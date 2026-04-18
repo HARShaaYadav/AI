@@ -113,6 +113,10 @@
   const chatMessages = document.getElementById('chatMessages');
   const offlineBanner = document.getElementById('offlineBanner');
 
+  function on(el, eventName, handler) {
+    if (el) el.addEventListener(eventName, handler);
+  }
+
   let overlay = document.createElement('div');
   overlay.className = 'sidebar-overlay';
   document.body.appendChild(overlay);
@@ -139,10 +143,17 @@
   });
 
   /* ── SIDEBAR MOBILE ────────────────────────────────────── */
-  function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('active'); }
-  function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
-  hamburgerBtn.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
-  overlay.addEventListener('click', closeSidebar);
+  function openSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+  }
+  function closeSidebar() {
+    if (sidebar) sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  }
+  on(hamburgerBtn, 'click', () => sidebar && sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+  on(overlay, 'click', closeSidebar);
 
   /* ── LANGUAGE SWITCHING ────────────────────────────────── */
   function switchLang(code) {
@@ -159,9 +170,9 @@
       vapiSessionLanguage = null;
     }
   }
-  langSwitch.addEventListener('change', e => switchLang(e.target.value));
-  langMobile.addEventListener('change', e => switchLang(e.target.value));
-  settingsLang.addEventListener('change', e => switchLang(e.target.value));
+  on(langSwitch, 'change', e => switchLang(e.target.value));
+  on(langMobile, 'change', e => switchLang(e.target.value));
+  on(settingsLang, 'change', e => switchLang(e.target.value));
 
   /* ── THEME TOGGLE ──────────────────────────────────────── */
   function initTheme() {
@@ -571,14 +582,15 @@
     fallbackReply(text);
   }
 
-  sendBtn.addEventListener('click', () => {
+  on(sendBtn, 'click', () => {
+    if (!chatInput) return;
     const text = chatInput.value.trim();
     if (!text) return;
     chatInput.value = '';
     handleOutgoingChatMessage(text);
   });
 
-  chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendBtn.click(); });
+  on(chatInput, 'keydown', e => { if (e.key === 'Enter' && sendBtn) sendBtn.click(); });
 
   document.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -598,11 +610,15 @@
   }
 
   /* ── MIC BUTTON — Vapi Voice Call OR Web Speech API ────── */
-  micBtn.replaceWith(micBtn.cloneNode(true));
-  const newMicBtn = document.getElementById('micBtn');
-  const newMicStatus = document.getElementById('micStatus');
+  let newMicBtn = micBtn;
+  let newMicStatus = micStatus;
+  if (micBtn) {
+    micBtn.replaceWith(micBtn.cloneNode(true));
+    newMicBtn = document.getElementById('micBtn');
+    newMicStatus = document.getElementById('micStatus');
+  }
 
-  newMicBtn.addEventListener('click', () => {
+  on(newMicBtn, 'click', () => {
     if (vapiInstance) {
       startVapiCall();
     } else {
