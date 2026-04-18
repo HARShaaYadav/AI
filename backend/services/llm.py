@@ -326,11 +326,18 @@ def _generate_with_openai(user_message: str, context: str, lang: str, conversati
 
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=20)
-        resp.raise_for_status()
+        if not resp.ok:
+            logger.error(
+                "OpenAI generation failed: status=%s model=%s body=%s",
+                resp.status_code,
+                PRIMARY_LLM_MODEL,
+                resp.text[:1000],
+            )
+            resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        logger.error(f"OpenAI generation failed: {e}")
+        logger.error("OpenAI generation failed: model=%s error=%s", PRIMARY_LLM_MODEL, e)
         return ""
 
 
