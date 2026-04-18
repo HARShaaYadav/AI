@@ -442,6 +442,37 @@
     }
   }
 
+  async function sendToBackendChat(userText) {
+    const previousConversation = conversationHistory.slice(0, -1);
+    addTypingIndicator();
+
+    try {
+      const result = await apiCall('/api/query', {
+        user_id: userId,
+        text: userText,
+        language: getLang(),
+        conversation: previousConversation,
+      });
+
+      removeTypingIndicator();
+
+      if (!isDuplicateConversationTurn('assistant', result.response)) {
+        addMessage(result.response, false, 'markdown');
+        conversationHistory.push({ role: 'assistant', text: result.response });
+        messageCount++;
+        localStorage.setItem('nyayavoice_msg_count', messageCount);
+        updateStats();
+      }
+
+      speakAssistantReplyInBrowser(result.response);
+      return true;
+    } catch (err) {
+      console.error('Backend chat request failed:', err);
+      removeTypingIndicator();
+      return false;
+    }
+  }
+
   /* ── FALLBACK (offline / no backend) ───────────────────── */
   const LEGAL_RESPONSES = {
     en: {
@@ -678,16 +709,198 @@
     speakAssistantReplyInBrowser(reply);
   }
 
+  function contextualFallbackReply(userText) {
+    const lang = getLang();
+    const lower = String(userText || '').toLowerCase();
+    const recentText = conversationHistory
+      .slice(-6)
+      .map(msg => String(msg && msg.text ? msg.text : '').toLowerCase())
+      .join(' ');
+
+    function detectScope(text) {
+      if (/where to file|where can i file|where should i file|which court|tribunal|forum|कहाँ|किस कोर्ट|कहाँ शिकायत|कहाँ रिपोर्ट|कहां/.test(text)) return 'where';
+      if (/documents|document needed|documents needed|what documents|proof|papers|receipt|agreement|दस्तावेज|सबूत|कागज|कागज़|प्रमाण/.test(text)) return 'documents';
+      if (/what to do|what can i do|what should i do|next step|next steps|how to proceed|क्या करें|क्या करूं|क्या करूँ|अगला कदम|अब क्या/.test(text)) return 'what';
+      return 'general';
+    }
+
+    function detectTopic(text) {
+      if (/landlord|tenant|rent|deposit|evict|eviction|lease|builder|property fraud|property|land|भूमि|ज़मीन|जमीन|मकान मालिक|किराया|डिपॉजिट|बेदखली|बिल्डर|प्रॉपर्टी|encroach/.test(text)) return 'property';
+      if (/divorce|custody|dowry|family court|domestic violence|तलाक|कस्टडी|दहेज|फैमिली कोर्ट|पारिवारिक|घरेलू हिंसा/.test(text)) return 'family';
+      if (/salary|wage|vetan|वेतन|labour|labor|श्रम|wrongful termination|offer letter|लेबर कोर्ट|कार्यस्थल पर उत्पीड़न/.test(text)) return 'employment';
+      if (/cyber|साइबर|online|ऑनलाइन|fraud|धोखा|धोखाधड़ी|phishing|1930/.test(text)) return 'cyber';
+      if (/consumer|उपभोक्ता|refund|warranty|edaakhil|product|defect/.test(text)) return 'consumer';
+      if (/bank fraud|cheque bounce|loan harassment|rbi ombudsman|banking|financial|बैंक फ्रॉड|चेक बाउंस|लोन परेशानियां|ओम्बड्समैन|वित्तीय/.test(text)) return 'finance';
+      if (/accident|vehicle theft|insurance claim|traffic police|mact|एक्सीडेंट|वाहन चोरी|इंश्योरेंस|ट्रैफिक पुलिस/.test(text)) return 'traffic';
+      if (/legal aid|free legal|कानूनी सहायता|dlsa|nalsa|15100/.test(text)) return 'legalAid';
+      if (/\brti\b|आरटीआई|सूचना का अधिकार|right to info/.test(text)) return 'rti';
+      if (/chori|theft|stolen|phone|mobile|snatch|fir|फोन|फ़ोन|मोबाइल|चोरी|एफआईआर|एफ़आईआर/.test(text)) return 'theft';
+      return '';
+    }
+
+    const fallbackCatalog = {
+      en: {
+        default: {
+          title: 'Legal Help',
+          what: 'Please describe what happened, when it happened, and where it happened so I can guide you more clearly.',
+          where: 'The correct authority depends on the issue. If it is a crime, start with the police. For civil disputes, the relevant court or tribunal may apply.',
+          documents: 'Keep identity proof, incident details, photos, screenshots, bills, and any written communication.',
+        },
+        property: {
+          title: 'Property & Rent Issues',
+          what: 'Collect your agreement and payment proof, ask for the refund in writing, and send a legal notice if the landlord still refuses.',
+          where: 'Civil Court or Rent Tribunal. For builder matters, Consumer Commission may also apply.',
+          documents: 'Rent agreement, payment receipts, bank statement, chats/emails, and photos/videos.',
+        },
+        family: {
+          title: 'Family Issues',
+          what: 'Seek immediate protection if needed, record the abuse or dispute details, and make a written complaint to the relevant authority.',
+          where: 'Family Court or Police Station, depending on the issue.',
+          documents: 'Marriage certificate, medical reports, chats/recordings, and income proof.',
+        },
+        employment: {
+          title: 'Employment Issues',
+          what: 'Keep your job records, raise a written complaint with your employer, and escalate if the issue is not resolved.',
+          where: 'Labour Court, Labour Commissioner, or the relevant complaints authority.',
+          documents: 'Offer letter, salary slips, bank statement, emails, and complaint records.',
+        },
+        cyber: {
+          title: 'Cyber Crime',
+          what: 'Block the compromised account if possible, save the transaction details and screenshots, and report the incident immediately.',
+          where: 'Cybercrime portal, helpline 1930, or police.',
+          documents: 'Screenshots, transaction IDs, account details, phone numbers, and links.',
+        },
+        consumer: {
+          title: 'Consumer Rights',
+          what: 'Ask the seller or service provider for a refund or repair in writing, keep the complaint record, and escalate the complaint if they do not respond.',
+          where: 'Consumer Commission or eDaakhil.',
+          documents: 'Bill, warranty, complaint messages, photos, and product or service details.',
+        },
+        finance: {
+          title: 'Financial Issues',
+          what: 'Inform the bank or lender immediately, keep a written record of the issue, and file a formal complaint if the problem continues.',
+          where: 'Bank grievance cell, RBI Ombudsman, or police depending on the issue.',
+          documents: 'Bank statement, complaint reference, cheque memo, loan records, and transaction proof.',
+        },
+        traffic: {
+          title: 'Traffic Issues',
+          what: 'Record the incident details, take photos if possible, and report the matter promptly.',
+          where: 'Traffic Police, police station, insurer, or MACT depending on the issue.',
+          documents: 'Driving license, RC, insurance papers, photos, and any police report.',
+        },
+        legalAid: {
+          title: 'Free Legal Aid',
+          what: 'Apply for free legal aid through the District Legal Services Authority and explain your issue clearly.',
+          where: 'District Legal Services Authority.',
+          documents: 'Identity proof, eligibility proof, and a short summary of the issue.',
+        },
+        rti: {
+          title: 'RTI',
+          what: 'Write a clear RTI application, ask for specific information, and follow up if no reply is received in time.',
+          where: 'The concerned public authority.',
+          documents: 'RTI application, fee receipt if applicable, and previous correspondence.',
+        },
+        theft: {
+          title: 'Theft / FIR',
+          what: 'Write down what was stolen, when and where it happened. Block your SIM if a phone was stolen, keep the IMEI number, and ask the police to register an FIR or Zero FIR.',
+          where: 'Nearest police station. You can also ask for a Zero FIR at any police station.',
+          documents: 'ID proof, incident details, phone bill or IMEI, photos, and any available evidence.',
+        },
+      },
+      hi: {
+        default: {
+          title: 'कानूनी सहायता',
+          what: 'कृपया बताइए क्या हुआ, कब हुआ और कहाँ हुआ, ताकि मैं आपको अधिक सही सलाह दे सकूँ।',
+          where: 'सही प्राधिकरण मामले पर निर्भर करता है। अपराध होने पर पहले पुलिस से संपर्क करें। सिविल विवाद में सम्बन्धित न्यायालय या प्राधिकरण लागू हो सकता है।',
+          documents: 'पहचान पत्र, घटना का विवरण, फ़ोटो, स्क्रीनशॉट, बिल और लिखित बातचीत सुरक्षित रखें।',
+        },
+        property: {
+          title: 'सम्पत्ति और किराया विवाद',
+          what: 'एग्रीमेंट और भुगतान के सबूत सुरक्षित रखें, लिखित में रिफंड या राहत माँगें, और ज़रूरत हो तो लीगल नोटिस भेजें।',
+          where: 'सिविल कोर्ट, रेंट ट्रिब्यूनल, या बिल्डर मामले में कंज्यूमर कमीशन उपयुक्त हो सकता है।',
+          documents: 'रेंट एग्रीमेंट, भुगतान रसीदें, बैंक स्टेटमेंट, चैट/ईमेल और फ़ोटो/वीडियो।',
+        },
+        family: {
+          title: 'पारिवारिक मामले',
+          what: 'जरूरत हो तो तुरंत सुरक्षा लें, घटना या विवाद का रिकॉर्ड रखें, और सम्बन्धित प्राधिकरण को लिखित शिकायत दें।',
+          where: 'मामले के अनुसार फैमिली कोर्ट या पुलिस स्टेशन।',
+          documents: 'विवाह प्रमाणपत्र, मेडिकल रिपोर्ट, चैट/रिकॉर्डिंग और आय सम्बन्धी दस्तावेज़।',
+        },
+        employment: {
+          title: 'नौकरी और वेतन सम्बन्धी मामले',
+          what: 'नौकरी से जुड़े रिकॉर्ड सुरक्षित रखें, नियोक्ता को लिखित शिकायत दें, और समाधान न मिलने पर मामला आगे बढ़ाएँ।',
+          where: 'लेबर कमिश्नर, लेबर कोर्ट, या सम्बन्धित शिकायत प्राधिकरण।',
+          documents: 'ऑफ़र लेटर, वेतन स्लिप, बैंक स्टेटमेंट, ईमेल और शिकायत की कॉपी।',
+        },
+        cyber: {
+          title: 'साइबर अपराध',
+          what: 'अकाउंट या सिम सुरक्षित करें, स्क्रीनशॉट और ट्रांजैक्शन डिटेल्स सेव करें, और तुरंत शिकायत दर्ज करें।',
+          where: 'cybercrime.gov.in, हेल्पलाइन 1930, या पुलिस स्टेशन।',
+          documents: 'स्क्रीनशॉट, ट्रांजैक्शन आईडी, अकाउंट डिटेल्स, फोन नंबर और लिंक।',
+        },
+        consumer: {
+          title: 'उपभोक्ता अधिकार',
+          what: 'विक्रेता या सेवा प्रदाता से लिखित में रिफंड या रिपेयर माँगें, शिकायत का रिकॉर्ड रखें, और जवाब न मिलने पर शिकायत आगे बढ़ाएँ।',
+          where: 'कंज्यूमर कमीशन या eDaakhil पोर्टल।',
+          documents: 'बिल, वारंटी, शिकायत संदेश, फ़ोटो और प्रोडक्ट/सेवा का विवरण।',
+        },
+        finance: {
+          title: 'बैंकिंग और वित्तीय मामले',
+          what: 'तुरंत बैंक या ऋणदाता को सूचित करें, समस्या का लिखित रिकॉर्ड रखें, और जरूरत होने पर औपचारिक शिकायत करें।',
+          where: 'बैंक grievance cell, RBI Ombudsman, या पुलिस स्टेशन।',
+          documents: 'बैंक स्टेटमेंट, शिकायत संख्या, चेक मेमो, लोन रिकॉर्ड और ट्रांजैक्शन प्रूफ।',
+        },
+        traffic: {
+          title: 'ट्रैफिक और वाहन मामले',
+          what: 'घटना का रिकॉर्ड बनाएं, संभव हो तो फ़ोटो लें, और मामले की तुरंत रिपोर्ट करें।',
+          where: 'ट्रैफिक पुलिस, पुलिस स्टेशन, बीमा कंपनी, या MACT।',
+          documents: 'ड्राइविंग लाइसेंस, RC, इंश्योरेंस पेपर, फ़ोटो और पुलिस रिपोर्ट।',
+        },
+        legalAid: {
+          title: 'निःशुल्क कानूनी सहायता',
+          what: 'जिला विधिक सेवा प्राधिकरण से निःशुल्क कानूनी सहायता के लिए आवेदन करें और अपनी समस्या साफ़ लिखें।',
+          where: 'जिला विधिक सेवा प्राधिकरण (DLSA)।',
+          documents: 'पहचान पत्र, पात्रता से जुड़े दस्तावेज़ और समस्या का संक्षिप्त विवरण।',
+        },
+        rti: {
+          title: 'आरटीआई',
+          what: 'स्पष्ट आरटीआई आवेदन लिखें, माँगी गई जानकारी साफ़ बताएं, और समय पर जवाब न मिले तो फॉलो-अप करें।',
+          where: 'सम्बन्धित सरकारी कार्यालय या लोक सूचना अधिकारी।',
+          documents: 'आरटीआई आवेदन, फीस रसीद (यदि लागू हो), और पूर्व पत्राचार।',
+        },
+        theft: {
+          title: 'फोन चोरी / एफ़आईआर',
+          what: 'तुरंत सिम ब्लॉक कराएं, फोन का IMEI नंबर सुरक्षित रखें, घटना का समय और स्थान लिखें, और नज़दीकी थाने में एफ़आईआर या ज़ीरो एफ़आईआर दर्ज कराने को कहें।',
+          where: 'नज़दीकी पुलिस स्टेशन। जरूरत हो तो किसी भी थाने में ज़ीरो एफ़आईआर दर्ज कराई जा सकती है।',
+          documents: 'पहचान पत्र, घटना का विवरण, मोबाइल बिल या IMEI नंबर, फ़ोटो और उपलब्ध सबूत।',
+        },
+      }
+    };
+
+    const topic = detectTopic(lower) || detectTopic(recentText);
+    const scope = detectScope(lower);
+    const answers = fallbackCatalog[lang] || fallbackCatalog.en;
+    const answer = answers[topic] || answers.default;
+    const labels = lang === 'hi'
+      ? { what: 'क्या करें', where: 'कहाँ शिकायत करें', documents: 'कौन से दस्तावेज़ रखें' }
+      : { what: 'What to do', where: 'Where to file', documents: 'Documents needed' };
+
+    let reply = `<strong>${answer.title}:</strong><br><br><strong>${labels.what}:</strong> ${answer.what}<br><br><strong>${labels.where}:</strong> ${answer.where}<br><br><strong>${labels.documents}:</strong> ${answer.documents}`;
+    if (scope === 'what') reply = `<strong>${answer.title}:</strong><br><br><strong>${labels.what}:</strong> ${answer.what}`;
+    else if (scope === 'where') reply = `<strong>${answer.title}:</strong><br><br><strong>${labels.where}:</strong> ${answer.where}`;
+    else if (scope === 'documents') reply = `<strong>${answer.title}:</strong><br><br><strong>${labels.documents}:</strong> ${answer.documents}`;
+
+    addMessage(reply, false, 'html');
+    speakAssistantReplyInBrowser(reply);
+  }
+
   function handleOutgoingChatMessage(text) {
     if (!text) return;
     addMessage(text, true, 'text');
-    if (vapiInstance) {
-      sendToVapiChat(text).then(sent => {
-        if (!sent) contextualFallbackReply(text);
-      });
-      return;
-    }
-    contextualFallbackReply(text);
+    conversationHistory.push({ role: 'user', text });
+    sendToBackendChat(text).then(sent => {
+      if (!sent) contextualFallbackReply(text);
+    });
   }
 
   on(sendBtn, 'click', () => {
