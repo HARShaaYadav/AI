@@ -365,7 +365,7 @@
         console.warn('Vapi speech did not start in time, falling back to browser speech');
         speakAssistantReplyInBrowser(text);
       }
-    }, 80000);
+    }, 240000);
     return true;
   }
 
