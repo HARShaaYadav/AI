@@ -33,6 +33,7 @@
   let browserSpeechActive = false;
   let currentBrowserUtterance = null;
   let pendingVapiSpeech = null;
+  let pendingVapiReadyResolvers = [];
   let vapiUnavailableReason = null;
   let browserVoiceFallbackEnabled = true;
 
@@ -55,6 +56,37 @@
     } else {
       console.warn('Vapi not initialized', { hasPublicKey: !!vapiPublicKey, hasSdk: !!VapiSdk });
     }
+  }
+
+  function resolvePendingVapiReady() {
+    if (!pendingVapiReadyResolvers.length) return;
+    const resolvers = pendingVapiReadyResolvers.slice();
+    pendingVapiReadyResolvers = [];
+    resolvers.forEach(resolve => resolve(true));
+  }
+
+  function rejectPendingVapiReady() {
+    if (!pendingVapiReadyResolvers.length) return;
+    const resolvers = pendingVapiReadyResolvers.slice();
+    pendingVapiReadyResolvers = [];
+    resolvers.forEach(resolve => resolve(false));
+  }
+
+  function waitForVapiReady(timeoutMs = 4000) {
+    if (vapiCallActive) return Promise.resolve(true);
+    return new Promise(resolve => {
+      const timer = setTimeout(() => {
+        pendingVapiReadyResolvers = pendingVapiReadyResolvers.filter(item => item !== finish);
+        resolve(false);
+      }, timeoutMs);
+
+      const finish = (ready) => {
+        clearTimeout(timer);
+        resolve(ready);
+      };
+
+      pendingVapiReadyResolvers.push(finish);
+    });
   }
 
   function setupVapiEvents() {
@@ -88,6 +120,7 @@
       if (msg.type === 'status-update') {
         if (msg.status === 'active' || msg.status === 'started' || msg.status === 'in-progress') {
           vapiCallActive = true;
+          resolvePendingVapiReady();
         }
       }
       if (msg.type === 'transcript' && msg.transcriptType === 'final') {
@@ -116,6 +149,7 @@
     });
     vapiInstance.on('call-end', () => {
       const shouldFallbackToBrowser = !!pendingSpeechFallbackTimer && !browserSpeechActive;
+      rejectPendingVapiReady();
       clearPendingSpeechFallback();
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
@@ -133,6 +167,7 @@
     vapiInstance.on('error', (err) => {
       console.error('Vapi error:', err);
       const shouldFallbackToBrowser = !!pendingSpeechFallbackTimer && !browserSpeechActive;
+      rejectPendingVapiReady();
       if (err && err.type === 'daily-error') {
         vapiUnavailableReason = 'daily_limit_reached';
         console.warn('Vapi unavailable for this session: daily limit reached or account quota exhausted');
@@ -447,7 +482,8 @@
     const requestedAt = Date.now();
     clearPendingSpeechFallback();
     try {
-      await ensureVapiSession('chat');
+      const sessionReady = await ensureVapiSession('chat');
+      if (!sessionReady) return false;
       vapiSessionMode = 'chat';
       console.info('Voice output source: vapi');
       vapiInstance.send({
@@ -543,6 +579,19 @@
       serverUrlSecret: '',
       metadata: { user_id: userId, language: currentLang, mode },
     });
+    const isReady = await waitForVapiReady();
+    if (!isReady) {
+      console.warn('Vapi session did not become ready in time after start');
+      try {
+        vapiInstance.stop();
+      } catch (err) {
+        console.error('Vapi stop after readiness timeout failed:', err);
+      }
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
+      return false;
+    }
     vapiCallActive = true;
     console.info('Vapi session started', { mode, language: currentLang });
     return true;
@@ -556,7 +605,8 @@
     conversationHistory.push({ role: 'user', text: userText });
 
     try {
-      await ensureVapiSession('chat');
+      const sessionReady = await ensureVapiSession('chat');
+      if (!sessionReady) throw new Error('vapi_session_not_ready');
       vapiSessionMode = 'chat';
       vapiInstance.send({
         type: 'add-message',
@@ -579,7 +629,8 @@
       vapiSessionLanguage = null;
 
       try {
-        await ensureVapiSession('chat');
+        const sessionReady = await ensureVapiSession('chat');
+        if (!sessionReady) throw new Error('vapi_session_not_ready');
         vapiSessionMode = 'chat';
         vapiInstance.send({
           type: 'add-message',
