@@ -166,6 +166,7 @@
   const micBtn = document.getElementById('micBtn');
   const micStatus = document.getElementById('micStatus');
   const chatInput = document.getElementById('chatInput');
+  const stopAudioBtn = document.getElementById('stopAudioBtn');
   const sendBtn = document.getElementById('sendBtn');
   const chatMessages = document.getElementById('chatMessages');
   const offlineBanner = document.getElementById('offlineBanner');
@@ -216,6 +217,7 @@
   function switchLang(code) {
     applyLang(code);
     [langSwitch, langMobile, settingsLang].forEach(sel => { if (sel) sel.value = code; });
+    updateStopAudioButtonLabel();
     clearPendingSpeechFallback();
     stopBrowserSpeech();
     if (vapiInstance && vapiCallActive) {
@@ -384,6 +386,30 @@
     browserSpeechActive = false;
     currentBrowserUtterance = null;
     window.speechSynthesis.cancel();
+  }
+
+  function stopResponseAudio() {
+    activeSpeechRequestId += 1;
+    pendingVapiSpeech = null;
+    clearPendingSpeechFallback();
+    stopBrowserSpeech();
+    if (vapiInstance && vapiCallActive && vapiSessionMode === 'chat') {
+      try {
+        vapiInstance.stop();
+      } catch (err) {
+        console.error('Vapi stop for response audio failed:', err);
+      }
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
+    }
+  }
+
+  function updateStopAudioButtonLabel() {
+    if (!stopAudioBtn) return;
+    const label = t('stopVoice');
+    stopAudioBtn.setAttribute('aria-label', label);
+    stopAudioBtn.setAttribute('title', label);
   }
 
   function startBrowserSpeechFallback(text, requestId) {
@@ -1064,6 +1090,7 @@
   });
 
   on(chatInput, 'keydown', e => { if (e.key === 'Enter' && sendBtn) sendBtn.click(); });
+  on(stopAudioBtn, 'click', stopResponseAudio);
 
   document.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1767,6 +1794,7 @@
   /* ── INIT ──────────────────────────────────────────────── */
   initTheme();
   initLang();
+  updateStopAudioButtonLabel();
   const savedLang = getLang();
   [langSwitch, langMobile, settingsLang].forEach(sel => { if (sel) sel.value = savedLang; });
   updateStats();

@@ -682,6 +682,26 @@ body {
   box-shadow: 0 12px 24px rgba(79, 70, 229, 0.28);
 }
 
+.stop-audio-btn {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: 14px;
+  background: rgba(254, 242, 242, 0.98);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc2626;
+  transition: all var(--transition);
+}
+
+.stop-audio-btn:hover {
+  background: #fff;
+  border-color: rgba(220, 38, 38, 0.4);
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.12);
+}
+
 .mic-btn-sm {
   width: 48px;
   height: 48px;
