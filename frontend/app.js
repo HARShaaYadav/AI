@@ -1138,10 +1138,16 @@
       return;
     }
     if (vapiCallActive && vapiSessionMode === 'chat') {
-      newMicBtn.classList.add('listening');
-      newMicStatus.textContent = t('vcListening');
-      vapiSessionMode = 'voice';
-      return;
+      clearPendingSpeechFallback();
+      stopBrowserSpeech();
+      try {
+        vapiInstance.stop();
+      } catch (err) {
+        console.error('Vapi stop before switching from chat to voice failed:', err);
+      }
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
     }
     newMicBtn.classList.add('listening');
     newMicStatus.textContent = t('vcListening');
