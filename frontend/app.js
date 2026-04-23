@@ -225,7 +225,11 @@
     if (target) target.classList.add('active');
     navBtns.forEach(b => { if (b.dataset.page === pageId) b.classList.add('active'); });
     closeSidebar();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (mainContent) {
+      mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     if (pageId === 'docs') renderDocsList();
   }
 
@@ -1747,14 +1751,14 @@
     document.getElementById('predStructuredReport').innerHTML = `
       <h4>Final Case Prediction Report</h4>
       <ol class="how-list">
+        <li><strong>Estimated Win Probability:</strong> ${winProbability}%</li>
+        <li><strong>Confidence Score:</strong> ${escapeHtml(confidenceScore)}</li>
         <li><strong>Case Summary:</strong> ${escapeHtml(report.case_summary || predictSession.summary)}</li>
         <li><strong>Strengths of the Case:</strong> ${escapeHtml(strengths.join(' '))}</li>
         <li><strong>Weaknesses of the Case:</strong> ${escapeHtml(weaknesses.join(' '))}</li>
         <li><strong>Missing Evidence:</strong> ${escapeHtml(missingEvidence.join(' '))}</li>
         <li><strong>Legal Risks:</strong> ${escapeHtml(legalRisks.join(' '))}</li>
         <li><strong>Suggestions to Improve Case:</strong> ${escapeHtml(suggestions.join(' '))}</li>
-        <li><strong>Estimated Win Probability:</strong> ${winProbability}%</li>
-        <li><strong>Confidence Score:</strong> ${escapeHtml(confidenceScore)}</li>
       </ol>
     `;
 
@@ -1817,7 +1821,7 @@
       } else {
         throw new Error('Case predictor did not return a usable question.');
       }
-      results.scrollIntoView({ behavior: 'smooth' });
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
       predictSession.active = false;
       alert('Case predictor failed: ' + err.message);
