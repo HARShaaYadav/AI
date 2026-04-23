@@ -1224,6 +1224,7 @@
   /* ── WEB SPEECH API — Fallback Voice Input ─────────────── */
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let activeRecognition = null;
+  let activeVoiceInputBtn = null;
 
   function getSpeechLang() {
     return getLang() === 'hi' ? 'hi-IN' : 'en-IN';
@@ -1276,17 +1277,29 @@
   }
 
   /* ── Voice input for form fields ───────────────────────── */
+  function stopActiveVoiceInput() {
+    if (activeRecognition) {
+      activeRecognition.stop();
+      activeRecognition = null;
+    }
+    if (activeVoiceInputBtn) {
+      activeVoiceInputBtn.classList.remove('voice-active');
+      activeVoiceInputBtn = null;
+    }
+  }
+
   function startVoiceInput(targetId, btn) {
     if (!SpeechRecognition) {
       alert(getLang() === 'hi' ? 'आपका ब्राउज़र वॉइस इनपुट का समर्थन नहीं करता। कृपया Chrome उपयोग करें।' : 'Your browser does not support voice input. Please use Chrome.');
       return;
     }
 
-    if (activeRecognition) {
-      activeRecognition.stop();
-      activeRecognition = null;
+    if (activeRecognition && activeVoiceInputBtn === btn) {
+      stopActiveVoiceInput();
       return;
     }
+
+    stopActiveVoiceInput();
 
     const recognition = new SpeechRecognition();
     recognition.lang = getSpeechLang();
@@ -1294,6 +1307,7 @@
     recognition.continuous = false;
     recognition.maxAlternatives = 1;
     activeRecognition = recognition;
+    activeVoiceInputBtn = btn;
 
     btn.classList.add('voice-active');
 
@@ -1315,11 +1329,13 @@
     recognition.onerror = () => {
       btn.classList.remove('voice-active');
       activeRecognition = null;
+      if (activeVoiceInputBtn === btn) activeVoiceInputBtn = null;
     };
 
     recognition.onend = () => {
       btn.classList.remove('voice-active');
       activeRecognition = null;
+      if (activeVoiceInputBtn === btn) activeVoiceInputBtn = null;
       target.value = finalTranscript;
     };
 
@@ -1727,6 +1743,7 @@
     const answerBtn = document.getElementById('predAnswerBtn');
     flow.style.display = 'block';
     legacy.style.display = 'none';
+    stopActiveVoiceInput();
     document.getElementById('predCaseSummaryText').textContent = predictSession.summary;
     counter.textContent = `Question ${predictSession.answers.length + 1} of ${predictSession.questionTarget}`;
     role.textContent = questionData.role;
@@ -1748,6 +1765,7 @@
     const pressureLabel = winProbability < 45 ? t('predPressureHigh') : (winProbability < 70 ? t('predPressureMedium') : t('predPressureLow'));
     const readinessLabel = winProbability >= 75 ? t('predReadyStrong') : (winProbability >= 55 ? t('predReadyModerate') : t('predReadyFragile'));
 
+    stopActiveVoiceInput();
     document.getElementById('predStructuredReport').innerHTML = `
       <h4>Final Case Prediction Report</h4>
       <ol class="how-list">
@@ -1805,6 +1823,7 @@
     predictSession.lang = lang;
     predictSession.selectedEvidence = hasNoEvidence ? [] : selectedEvidence;
     predictSession.answers = [];
+    stopActiveVoiceInput();
     results.style.display = 'block';
     document.getElementById('predInteractiveFlow').style.display = 'block';
     document.getElementById('predLegacyReport').style.display = 'none';
