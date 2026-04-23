@@ -1690,6 +1690,226 @@
     return items.map(item => `<div class="weakness-item">${item}</div>`).join('');
   }
 
+  const predictSession = {
+    active: false,
+    caseType: '',
+    facts: '',
+    lang: 'en',
+    selectedEvidence: [],
+    questions: [],
+    answers: [],
+    summary: '',
+  };
+
+  function getPredictCaseLabel(caseType, lang) {
+    const labels = {
+      theft: { en: 'theft or robbery', hi: 'chori ya robbery' },
+      dv: { en: 'domestic violence', hi: 'domestic violence' },
+      wage: { en: 'wage or labour non-payment', hi: 'wage ya labour non-payment' },
+      harass: { en: 'harassment or POSH', hi: 'harassment ya POSH' },
+      land: { en: 'land or property dispute', hi: 'land ya property dispute' },
+      cyber: { en: 'cyber fraud', hi: 'cyber fraud' },
+      consumer: { en: 'consumer complaint', hi: 'consumer complaint' }
+    };
+    return (labels[caseType] && labels[caseType][lang]) || (labels[caseType] && labels[caseType].en) || 'legal dispute';
+  }
+
+  function summarizeFactsSnippet(facts) {
+    const clean = String(facts || '').replace(/\s+/g, ' ').trim();
+    if (clean.length <= 160) return clean;
+    return clean.slice(0, 157).trimEnd() + '...';
+  }
+
+  function buildCaseSummary(caseType, facts, evidenceCount, lang) {
+    const caseLabel = getPredictCaseLabel(caseType, lang);
+    const evidenceText = evidenceCount === 0
+      ? (lang === 'hi' ? 'No independent evidence is clearly shown yet.' : 'No independent evidence is clearly shown yet.')
+      : (lang === 'hi'
+        ? `At this stage, ${evidenceCount} evidence category${evidenceCount > 1 ? 'ies are' : ' is'} being relied on.`
+        : `At this stage, ${evidenceCount} evidence category${evidenceCount > 1 ? 'ies are' : ' is'} being relied on.`);
+    if (lang === 'hi') {
+      return `This appears to be a ${caseLabel} matter. ${summarizeFactsSnippet(facts)} ${evidenceText}`;
+    }
+    return `This appears to be a ${caseLabel} matter. ${summarizeFactsSnippet(facts)} ${evidenceText}`;
+  }
+
+  function buildCrossQuestions(caseType, lang, trainingData, selectedEvidence, factsLower) {
+    const hasTimeline = hasTimelineSignal(factsLower);
+    const hasReport = hasReportSignal(factsLower);
+    const evidenceCount = selectedEvidence.length;
+    const lawAnchors = {
+      theft: { en: 'Under IPC 378/379 and CrPC 154, when exactly did you discover the theft and when was it reported?', hi: 'Under IPC 378/379 and CrPC 154, when exactly did you discover the theft and when was it reported?' },
+      dv: { en: 'Under the DV Act and IPC 498A, which incident is your strongest legally provable act of abuse?', hi: 'Under the DV Act and IPC 498A, which incident is your strongest legally provable act of abuse?' },
+      wage: { en: 'Under labour law, what exact amount is due and for what exact work period?', hi: 'Under labour law, what exact amount is due and for what exact work period?' },
+      harass: { en: 'Under POSH or IPC 354A, what exact conduct are you saying crossed the legal line?', hi: 'Under POSH or IPC 354A, what exact conduct are you saying crossed the legal line?' },
+      land: { en: 'What title, possession, or revenue record gives you the stronger legal footing in this property dispute?', hi: 'What title, possession, or revenue record gives you the stronger legal footing in this property dispute?' },
+      cyber: { en: 'Under the IT Act and IPC 420, what digital trail directly links the fraud to the accused account or number?', hi: 'Under the IT Act and IPC 420, what digital trail directly links the fraud to the accused account or number?' },
+      consumer: { en: 'Under consumer law, what defect, deficiency, or unfair practice can you prove with records?', hi: 'Under consumer law, what defect, deficiency, or unfair practice can you prove with records?' }
+    };
+    const judgeExtras = [];
+    const lawyerExtras = [];
+
+    if (!hasTimeline) {
+      judgeExtras.push(lang === 'hi'
+        ? 'Your timeline is still unclear. Give the exact sequence in dates, not general statements.'
+        : 'Your timeline is still unclear. Give the exact sequence in dates, not general statements.');
+    }
+    if (!hasReport) {
+      judgeExtras.push((lawAnchors[caseType] || lawAnchors.theft)[lang] || (lawAnchors[caseType] || lawAnchors.theft).en);
+    }
+    if (evidenceCount === 0) {
+      lawyerExtras.push(lang === 'hi'
+        ? 'So at present, you have no strong independent proof beyond your own version. Why should the court prefer it?'
+        : 'So at present, you have no strong independent proof beyond your own version. Why should the court prefer it?');
+    } else {
+      lawyerExtras.push(lang === 'hi'
+        ? 'Which one piece of evidence is strongest, and can the other side attack its authenticity or relevance?'
+        : 'Which one piece of evidence is strongest, and can the other side attack its authenticity or relevance?');
+    }
+
+    const judgePool = trainingData.judgeQuestions[lang].concat(judgeExtras);
+    const lawyerPool = trainingData.opponentQuestions[lang].concat(lawyerExtras);
+    const questions = [];
+    const totalQuestions = 6;
+    for (let i = 0; i < totalQuestions; i++) {
+      const isJudge = i % 2 === 0;
+      const pool = isJudge ? judgePool : lawyerPool;
+      questions.push({
+        role: isJudge ? 'judge' : 'lawyer',
+        text: pool[Math.min(Math.floor(i / 2), pool.length - 1)]
+      });
+    }
+    return questions;
+  }
+
+  function showPredictQuestion() {
+    const flow = document.getElementById('predInteractiveFlow');
+    const legacy = document.getElementById('predLegacyReport');
+    const counter = document.getElementById('predQuestionCounter');
+    const role = document.getElementById('predQuestionRole');
+    const question = document.getElementById('predCurrentQuestion');
+    const answerInput = document.getElementById('predAnswerInput');
+    const answerBtn = document.getElementById('predAnswerBtn');
+    const index = predictSession.answers.length;
+    const current = predictSession.questions[index];
+    flow.style.display = 'block';
+    legacy.style.display = 'none';
+    document.getElementById('predCaseSummaryText').textContent = predictSession.summary;
+    counter.textContent = `Question ${index + 1} of ${predictSession.questions.length}`;
+    role.textContent = current.role === 'judge' ? 'Judge' : 'Opposing Lawyer';
+    question.textContent = current.text;
+    answerInput.value = '';
+    answerInput.focus();
+    answerBtn.textContent = index === predictSession.questions.length - 1 ? 'Finish Cross-Examination' : 'Submit Answer';
+  }
+
+  function estimateReportMetrics(caseType, lang, selectedEvidence, combinedText, answersCount, trainingData) {
+    let winProbability = trainingData.baseConfidence;
+    const evidenceCount = selectedEvidence.length;
+    const hasTimeline = hasTimelineSignal(combinedText);
+    const hasReport = hasReportSignal(combinedText);
+    const hasEvidence = hasEvidenceNarrative(combinedText) || evidenceCount > 0;
+    const detailBonus = combinedText.length > 420 ? 6 : (combinedText.length > 220 ? 3 : -5);
+
+    if (evidenceCount >= 3) winProbability += 12;
+    else if (evidenceCount >= 1) winProbability += 6;
+    else winProbability -= 14;
+
+    if (hasTimeline) winProbability += 6;
+    else winProbability -= 8;
+
+    if (hasReport) winProbability += 5;
+    else winProbability -= 7;
+
+    if (hasEvidence) winProbability += 5;
+    else winProbability -= 6;
+
+    if (answersCount < 5) winProbability -= 8;
+    winProbability += detailBonus;
+    winProbability = Math.max(18, Math.min(92, winProbability));
+
+    const completeness = [hasTimeline, hasReport, hasEvidence, combinedText.length > 220, answersCount >= 5].filter(Boolean).length;
+    const confidenceScore = completeness >= 4 ? 'High' : (completeness >= 3 ? 'Medium' : 'Low');
+    const pressureLabel = winProbability < 45 ? t('predPressureHigh') : (winProbability < 70 ? t('predPressureMedium') : t('predPressureLow'));
+    const readinessLabel = winProbability >= 75 ? t('predReadyStrong') : (winProbability >= 55 ? t('predReadyModerate') : t('predReadyFragile'));
+
+    return { winProbability, confidenceScore, pressureLabel, readinessLabel, hasTimeline, hasReport, hasEvidence };
+  }
+
+  function finalizePredictSession() {
+    const lang = predictSession.lang;
+    const trainingData = CASE_TRAINING_DATA[predictSession.caseType] || CASE_TRAINING_DATA.theft;
+    const combinedText = `${predictSession.facts} ${predictSession.answers.join(' ')}`.toLowerCase();
+    const metrics = estimateReportMetrics(
+      predictSession.caseType,
+      lang,
+      predictSession.selectedEvidence,
+      combinedText,
+      predictSession.answers.length,
+      trainingData
+    );
+
+    const strengths = [];
+    const weaknesses = [];
+    const missingEvidence = [];
+    const legalRisks = [];
+    const suggestions = trainingData.actionSteps[lang].slice(0, 4);
+
+    if (predictSession.selectedEvidence.length > 0) strengths.push(lang === 'hi' ? 'You have at least some identified evidence categories supporting the case.' : 'You have at least some identified evidence categories supporting the case.');
+    if (metrics.hasTimeline) strengths.push(lang === 'hi' ? 'Your version contains some chronological structure, which improves courtroom clarity.' : 'Your version contains some chronological structure, which improves courtroom clarity.');
+    if (metrics.hasReport) strengths.push(lang === 'hi' ? 'There is at least some indication that the matter was reported or documented.' : 'There is at least some indication that the matter was reported or documented.');
+    if (predictSession.answers.length >= 5) strengths.push(lang === 'hi' ? 'You answered sustained cross-questions, which helps reveal a more stable theory of the case.' : 'You answered sustained cross-questions, which helps reveal a more stable theory of the case.');
+
+    if (!metrics.hasTimeline) weaknesses.push(trainingData.weaknessHints.missingTimeline[lang]);
+    if (!metrics.hasReport) weaknesses.push(lang === 'hi' ? 'It is still unclear when the proper authority was informed, which weakens procedural credibility.' : 'It is still unclear when the proper authority was informed, which weakens procedural credibility.');
+    if (predictSession.selectedEvidence.length === 0) weaknesses.push(trainingData.weaknessHints.missingEvidence[lang]);
+    if (combinedText.length < 260) weaknesses.push(lang === 'hi' ? 'Your version remains too short for a strong contested hearing.' : 'Your version remains too short for a strong contested hearing.');
+    weaknesses.push(trainingData.weaknessHints.generic[lang]);
+
+    if (!predictSession.selectedEvidence.includes('docs')) missingEvidence.push(lang === 'hi' ? 'Primary documents, receipts, records, or written complaint trail.' : 'Primary documents, receipts, records, or written complaint trail.');
+    if (!predictSession.selectedEvidence.includes('witness')) missingEvidence.push(lang === 'hi' ? 'Independent witness support or corroboration.' : 'Independent witness support or corroboration.');
+    if (!predictSession.selectedEvidence.includes('digital') && !predictSession.selectedEvidence.includes('cctv')) missingEvidence.push(lang === 'hi' ? 'Digital trail, CCTV, screenshots, or timestamped communication.' : 'Digital trail, CCTV, screenshots, or timestamped communication.');
+
+    if (!metrics.hasTimeline) legalRisks.push(lang === 'hi' ? 'An unclear sequence allows the other side to attack reliability and chronology.' : 'An unclear sequence allows the other side to attack reliability and chronology.');
+    if (!metrics.hasReport) legalRisks.push(lang === 'hi' ? 'Delay or uncertainty in reporting may be used against you under cross-examination.' : 'Delay or uncertainty in reporting may be used against you under cross-examination.');
+    if (predictSession.selectedEvidence.length === 0) legalRisks.push(lang === 'hi' ? 'The matter may reduce to one version against another without enough corroboration.' : 'The matter may reduce to one version against another without enough corroboration.');
+    legalRisks.push(lang === 'hi' ? 'Any exaggeration, omission, or mismatch with records will be heavily exploited by the opposing side.' : 'Any exaggeration, omission, or mismatch with records will be heavily exploited by the opposing side.');
+
+    document.getElementById('predStructuredReport').innerHTML = `
+      <h4>Final Case Prediction Report</h4>
+      <ol class="how-list">
+        <li><strong>Case Summary:</strong> ${escapeHtml(predictSession.summary)}</li>
+        <li><strong>Strengths of the Case:</strong> ${escapeHtml(strengths.join(' '))}</li>
+        <li><strong>Weaknesses of the Case:</strong> ${escapeHtml(weaknesses.join(' '))}</li>
+        <li><strong>Missing Evidence:</strong> ${escapeHtml(missingEvidence.join(' '))}</li>
+        <li><strong>Legal Risks:</strong> ${escapeHtml(legalRisks.join(' '))}</li>
+        <li><strong>Suggestions to Improve Case:</strong> ${escapeHtml(suggestions.join(' '))}</li>
+        <li><strong>Estimated Win Probability:</strong> ${metrics.winProbability}%</li>
+        <li><strong>Confidence Score:</strong> ${metrics.confidenceScore}</li>
+      </ol>
+    `;
+
+    document.getElementById('meterSuccess').style.width = metrics.winProbability + '%';
+    document.getElementById('meterSuccessVal').textContent = metrics.winProbability + '%';
+    document.getElementById('predTimeVal').textContent = metrics.readinessLabel;
+    document.getElementById('predCostVal').textContent = metrics.pressureLabel;
+    document.getElementById('predSimilarVal').textContent = String(weaknesses.length);
+    document.getElementById('predLawsList').innerHTML = trainingData.laws.map(law => `<span class="law-tag">${law}</span>`).join('');
+    document.getElementById('predJudgeList').innerHTML = renderPracticeList(
+      predictSession.questions.filter(item => item.role === 'judge').map(item => item.text)
+    );
+    document.getElementById('predOpponentList').innerHTML = renderPracticeList(
+      predictSession.questions.filter(item => item.role === 'lawyer').map(item => item.text)
+    );
+    document.getElementById('predWeaknessList').innerHTML = renderWeaknessList(weaknesses);
+    document.getElementById('predActionsList').innerHTML = suggestions.map(step => `<li>${step}</li>`).join('');
+
+    document.getElementById('predInteractiveFlow').style.display = 'none';
+    document.getElementById('predLegacyReport').style.display = 'block';
+    document.getElementById('predictResults').scrollIntoView({ behavior: 'smooth' });
+    predictSession.active = false;
+  }
+
   const predictBtn = document.getElementById('predictBtn');
   if (predictBtn) predictBtn.addEventListener('click', () => {
     const caseType = document.getElementById('predictCaseType').value;
@@ -1697,10 +1917,8 @@
     const facts = document.getElementById('predictFacts').value.trim();
     if (!facts) { alert(t('alertCaseFacts')); return; }
 
-    const data = CASE_DATA[caseType] || CASE_DATA.theft;
     const results = document.getElementById('predictResults');
     const lang = getLang();
-
     const trainingData = CASE_TRAINING_DATA[caseType] || CASE_TRAINING_DATA.theft;
     const selectedEvidence = Array.from(document.querySelectorAll('#page-predict input[type="checkbox"]:checked'))
       .map(input => input.value)
@@ -1708,89 +1926,35 @@
     const hasNoEvidence = document.querySelector('#page-predict input[value="none"]')?.checked;
     const evidenceCount = hasNoEvidence ? 0 : selectedEvidence.length;
     const factsLower = facts.toLowerCase();
-
-    let confidence = trainingData.baseConfidence;
-    if (evidenceCount >= 3) confidence += 14;
-    else if (evidenceCount >= 1) confidence += 7;
-    else confidence -= 14;
-
-    if (hasTimelineSignal(factsLower)) confidence += 7;
-    else confidence -= 8;
-
-    if (hasReportSignal(factsLower)) confidence += 5;
-    if (hasEvidenceNarrative(factsLower)) confidence += 4;
-    if (facts.length < 120) confidence -= 8;
-    confidence = Math.max(22, Math.min(94, confidence));
-
-    const readinessLabel = confidence >= 75 ? t('predReadyStrong') : (confidence >= 55 ? t('predReadyModerate') : t('predReadyFragile'));
-    const pressureLabel = confidence < 45 ? t('predPressureHigh') : (confidence < 70 ? t('predPressureMedium') : t('predPressureLow'));
-
-    const weaknesses = [];
-    if (evidenceCount === 0) weaknesses.push(trainingData.weaknessHints.missingEvidence[lang]);
-    if (!hasTimelineSignal(factsLower)) weaknesses.push(trainingData.weaknessHints.missingTimeline[lang]);
-    if (!hasReportSignal(factsLower)) weaknesses.push(lang === 'hi' ? 'अभी तक यह साफ़ नहीं है कि आपने किस प्राधिकरण को रिपोर्ट किया है या आगे क्या कदम उठाया है।' : 'It is not yet clear whether you reported the matter or what step you took next.');
-    if (facts.length < 120) weaknesses.push(lang === 'hi' ? 'आपका विवरण छोटा है; दूसरी तरफ़ इस अस्पष्टता का लाभ उठा सकती है।' : 'Your narrative is still short, so the other side could exploit the missing detail.');
-    weaknesses.push(trainingData.weaknessHints.generic[lang]);
-
-    const judgeQuestions = trainingData.judgeQuestions[lang].slice();
-    const opponentQuestions = trainingData.opponentQuestions[lang].slice();
-
-    if (evidenceCount === 0) {
-      judgeQuestions.push(lang === 'hi' ? 'जब आपके पास प्रत्यक्ष सबूत कम है, तो अदालत आपकी बात पर क्यों भरोसा करे?' : 'When direct proof is limited, why should the court rely on your version?');
-      opponentQuestions.push(lang === 'hi' ? 'क्या यह सच नहीं कि आपके पास आरोप साबित करने वाला कोई मजबूत स्वतंत्र सबूत नहीं है?' : 'Is it not true that you do not yet have strong independent proof for this allegation?');
-    }
-
-    if (!hasTimelineSignal(factsLower)) {
-      judgeQuestions.push(lang === 'hi' ? 'घटनाओं का क्रम क्या है, और किस तारीख को क्या हुआ?' : 'What is the sequence of events, and what happened on which date?');
-    }
-
-    const actions = trainingData.actionSteps[lang].slice();
-    if (evidenceCount === 0) {
-      actions.unshift(lang === 'hi' ? 'सबसे पहले ऐसे स्वतंत्र सबूत खोजें जिन्हें दूसरी तरफ़ आसानी से नकार न सके।' : 'First, look for independent proof that the other side cannot easily deny.');
-    }
-    if (!hasReportSignal(factsLower)) {
-      actions.push(lang === 'hi' ? 'अगर मामला रिपोर्ट योग्य है, तो लिखित शिकायत या उचित प्राधिकरण को सूचना देने पर विचार करें।' : 'If the matter is reportable, consider making a written complaint or notifying the relevant authority.');
-    }
-
-    document.getElementById('meterSuccess').style.width = confidence + '%';
-    document.getElementById('meterSuccessVal').textContent = confidence + '%';
-    document.getElementById('predTimeVal').textContent = readinessLabel;
-    document.getElementById('predCostVal').textContent = pressureLabel;
-    document.getElementById('predSimilarVal').textContent = String(weaknesses.length);
-    document.getElementById('predLawsList').innerHTML = trainingData.laws.map(law => `<span class="law-tag">${law}</span>`).join('');
-    document.getElementById('predJudgeList').innerHTML = renderPracticeList(judgeQuestions);
-    document.getElementById('predOpponentList').innerHTML = renderPracticeList(opponentQuestions);
-    document.getElementById('predWeaknessList').innerHTML = renderWeaknessList(weaknesses);
-    document.getElementById('predActionsList').innerHTML = actions.map(step => `<li>${step}</li>`).join('');
+    predictSession.active = true;
+    predictSession.caseType = caseType;
+    predictSession.facts = facts;
+    predictSession.lang = lang;
+    predictSession.selectedEvidence = selectedEvidence;
+    predictSession.answers = [];
+    predictSession.summary = buildCaseSummary(caseType, facts, evidenceCount, lang);
+    predictSession.questions = buildCrossQuestions(caseType, lang, trainingData, selectedEvidence, factsLower);
 
     results.style.display = 'block';
+    showPredictQuestion();
     results.scrollIntoView({ behavior: 'smooth' });
-    return;
+  });
 
-    document.getElementById('meterSuccess').style.width = data.success + '%';
-    document.getElementById('meterSuccessVal').textContent = data.success + '%';
-    document.getElementById('predTimeVal').textContent = data.time + (lang === 'hi' ? ' माह' : ' months');
-    document.getElementById('predCostVal').textContent = data.cost;
-    document.getElementById('predSimilarVal').textContent = data.similar;
-
-    document.getElementById('scWon').style.width = data.won + '%';
-    document.getElementById('scWon').innerHTML = `<span>${t('predWon')}</span> ${data.won}%`;
-    document.getElementById('scSettled').style.width = data.settled + '%';
-    document.getElementById('scSettled').innerHTML = `<span>${t('predSettled')}</span> ${data.settled}%`;
-    document.getElementById('scLost').style.width = data.lost + '%';
-    document.getElementById('scLost').innerHTML = `<span>${t('predLost')}</span> ${data.lost}%`;
-
-    const lawsDiv = document.getElementById('predLawsList');
-    lawsDiv.innerHTML = data.laws.map(l => `<span class="law-tag">${l}</span>`).join('');
-
-    const steps = lang === 'hi'
-      ? ['सभी साक्ष्य और दस्तावेज़ एकत्र करें', 'निकटतम थाने में एफ़आईआर दर्ज करें या सम्बन्धित प्राधिकरण में शिकायत दर्ज करें', 'निःशुल्क कानूनी सहायता हेतु नालसा हेल्पलाइन 15100 पर सम्पर्क करें', 'किसी योग्य वकील से परामर्श करें']
-      : ['Gather all evidence and documents', 'File FIR at nearest police station or lodge complaint with relevant authority', 'Contact NALSA Helpline 15100 for free legal aid', 'Consult a qualified lawyer for formal advice'];
-
-    document.getElementById('predActionsList').innerHTML = steps.map(s => `<li>${s}</li>`).join('');
-
-    results.style.display = 'block';
-    results.scrollIntoView({ behavior: 'smooth' });
+  const predAnswerBtn = document.getElementById('predAnswerBtn');
+  if (predAnswerBtn) predAnswerBtn.addEventListener('click', () => {
+    if (!predictSession.active) return;
+    const answerInput = document.getElementById('predAnswerInput');
+    const answer = answerInput.value.trim();
+    if (!answer) {
+      alert('Please answer the current cross-question before proceeding.');
+      return;
+    }
+    predictSession.answers.push(answer);
+    if (predictSession.answers.length >= predictSession.questions.length) {
+      finalizePredictSession();
+      return;
+    }
+    showPredictQuestion();
   });
 
   /* ── RISK SCORE ────────────────────────────────────────── */

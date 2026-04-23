@@ -998,6 +998,28 @@
       <!-- Prediction Results -->
       <div class="card predict-results" id="predictResults" style="display:none;">
         <h3 data-i18n="predictResults">Practice Round Report</h3>
+        <div id="predInteractiveFlow" style="display:none;">
+          <div class="legal-ref-box">
+            <h4 data-i18n="predCaseSummaryTitle">Case Summary</h4>
+            <p id="predCaseSummaryText"></p>
+          </div>
+
+          <div class="weakness-box" style="margin-top:16px;">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+              <h4 id="predQuestionRole" style="margin:0;">Judge</h4>
+              <div class="stat-label" id="predQuestionCounter">Question 1 of 6</div>
+            </div>
+            <p class="practice-panel-sub" id="predCurrentQuestion" style="margin-top:12px;"></p>
+            <textarea class="form-textarea" id="predAnswerInput" style="margin-top:12px;"
+              data-i18n-placeholder="predAnswerPh"
+              placeholder="Answer this question clearly and factually..."></textarea>
+            <button class="btn btn-primary" id="predAnswerBtn" type="button" style="margin-top:12px;"
+              data-i18n="predAnswerBtn">Submit Answer</button>
+          </div>
+        </div>
+
+        <div id="predLegacyReport" style="display:none;">
+          <div id="predStructuredReport" class="legal-ref-box" style="margin-bottom:16px;"></div>
 
         <div class="predict-meters">
           <div class="meter">
@@ -1049,6 +1071,7 @@
         <!-- Recommended next steps -->
         <h4 data-i18n="predNextSteps">How to Strengthen Your Case</h4>
         <ol class="how-list" id="predActionsList"></ol>
+        </div>
 
         <p class="disclaimer" data-i18n="predDisclaimer">This practice round is for legal awareness and preparation only.
           It is not a court decision or formal legal advice.</p>
