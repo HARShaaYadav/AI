@@ -3,6 +3,7 @@ Response engine — works without any external LLM API.
 Uses Qdrant semantic search + keyword intent detection + template formatting.
 Voice calls go through Vapi (which handles LLM on its own credits).
 """
+import json
 import re
 import logging
 import os
@@ -471,6 +472,169 @@ def _generate_with_gemini(user_message: str, context: str, lang: str, conversati
         if "source_detail" in locals() and source_detail:
             return "", f"gemini_{source_detail}"
         return "", "gemini_request_failed"
+
+
+def _extract_json_payload(text: str) -> dict | None:
+    if not text:
+        return None
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        pass
+
+    match = re.search(r"\{[\s\S]*\}", cleaned)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(0))
+    except Exception:
+        return None
+
+
+def _build_case_predictor_messages(case_type: str, facts: str, evidence: list[str], answers: list[dict], lang: str, question_target: int) -> list[dict]:
+    language_name = SUPPORTED_LANGUAGES.get(lang, "English")
+    answers_block = "\n".join(
+        f"Q{idx + 1} [{item.get('role', 'Judge')}]: {item.get('question', '')}\nA{idx + 1}: {item.get('answer', '')}"
+        for idx, item in enumerate(answers)
+    ) or "No cross-question answers yet."
+    evidence_block = ", ".join(evidence) if evidence else "No evidence selected."
+
+    system_prompt = (
+        "You are an advanced Indian Legal AI integrated inside a Case Predictor. "
+        "You simulate courtroom analysis using Indian law logic. "
+        "Be strict, realistic, and case-specific. "
+        "Never ask generic questions unrelated to the facts. "
+        "Ask only one question at a time. "
+        "Alternate roles strictly: Judge, Opposing Lawyer, Judge, Opposing Lawyer. "
+        "Questions must expose missing evidence, contradictions, legal defects, delay, causation, ownership, possession, reporting, and procedural weakness when relevant. "
+        "Do not repeat earlier questions. "
+        f"Respond only in {language_name}. "
+        "Return valid JSON only."
+    )
+
+    user_prompt = (
+        f"Case type: {case_type}\n"
+        f"Language code: {lang}\n"
+        f"Evidence selected: {evidence_block}\n"
+        f"Initial facts:\n{facts}\n\n"
+        f"Cross-question history:\n{answers_block}\n\n"
+        f"Target total questions: {question_target}\n"
+        f"Questions already completed: {len(answers)}\n\n"
+        "Return JSON with this exact shape:\n"
+        "{\n"
+        '  "case_summary": "2-3 line simple summary",\n'
+        '  "next_step": "question" or "final_report",\n'
+        '  "question": {"role": "Judge or Opposing Lawyer", "text": "single short sharp question"},\n'
+        '  "report": {\n'
+        '    "case_summary": "simple explanation",\n'
+        '    "strengths": ["..."],\n'
+        '    "weaknesses": ["..."],\n'
+        '    "missing_evidence": ["..."],\n'
+        '    "legal_risks": ["..."],\n'
+        '    "suggestions": ["..."],\n'
+        '    "win_probability": 0,\n'
+        '    "confidence_score": "Low or Medium or High"\n'
+        "  }\n"
+        "}\n\n"
+        "If fewer than the target questions are completed, set next_step to question and fill question. "
+        "If the target questions are completed, set next_step to final_report and fill report. "
+        "The question must be based on the actual facts and prior answers, not just the case type."
+    )
+    return [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+
+def _generate_case_predictor_with_gemini(case_type: str, facts: str, evidence: list[str], answers: list[dict], lang: str, question_target: int) -> tuple[dict | None, str | None]:
+    if not GEMINI_API_KEY:
+        return None, "gemini_not_configured"
+
+    messages = _build_case_predictor_messages(case_type, facts, evidence, answers, lang, question_target)
+    prompt_parts = [f"System: {messages[0]['content']}", f"User: {messages[1]['content']}"]
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{PRIMARY_LLM_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": "\n\n".join(prompt_parts)}]}],
+        "generationConfig": {
+            "temperature": 0.35,
+            "responseMimeType": "application/json",
+        }
+    }
+
+    try:
+        resp = requests.post(url, json=payload, timeout=20)
+        if not resp.ok:
+            source_detail = None
+            try:
+                error_data = resp.json()
+                source_detail = error_data.get("error", {}).get("status") or error_data.get("error", {}).get("message")
+            except Exception:
+                source_detail = None
+            logger.error("Case predictor Gemini failed: status=%s body=%s", resp.status_code, resp.text[:1000])
+            resp.raise_for_status()
+        data = resp.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        parsed = _extract_json_payload(text)
+        if not parsed:
+            return None, "gemini_invalid_json"
+        return parsed, None
+    except Exception as e:
+        logger.error("Case predictor Gemini request failed: %s", e)
+        if "source_detail" in locals() and source_detail:
+            return None, f"gemini_{source_detail}"
+        return None, "gemini_request_failed"
+
+
+def _fallback_case_predictor(case_type: str, facts: str, evidence: list[str], answers: list[dict], question_target: int) -> dict:
+    answer_count = len(answers)
+    roles = ["Judge", "Opposing Lawyer"]
+    fallback_questions = [
+        "What exact date and time did this incident happen?",
+        "What independent proof supports your version?",
+        "Why was there any delay in complaint or reporting?",
+        "What part of your version can the other side deny most easily?",
+        "Which record directly links the accused to the act?",
+        "What legal relief are you actually asking the court to grant?",
+    ]
+    summary = f"This appears to be a {case_type} matter based on the facts provided. The case still needs fact-specific testing on timeline, proof, and legal consistency."
+    if answer_count < question_target:
+        return {
+            "case_summary": summary,
+            "next_step": "question",
+            "question": {
+                "role": roles[answer_count % 2],
+                "text": fallback_questions[min(answer_count, len(fallback_questions) - 1)],
+            },
+            "report": None,
+        }
+
+    return {
+        "case_summary": summary,
+        "next_step": "final_report",
+        "question": None,
+        "report": {
+            "case_summary": summary,
+            "strengths": ["The narrative contains a defined grievance."],
+            "weaknesses": ["The case-specific AI analysis was unavailable, so this report is conservative."],
+            "missing_evidence": ["Independent documentary or electronic proof."],
+            "legal_risks": ["Opposing side may challenge consistency, proof, and delay."],
+            "suggestions": ["Add exact dates, complaint history, and strongest records before relying on prediction."],
+            "win_probability": 45,
+            "confidence_score": "Low",
+        },
+    }
+
+
+def generate_case_predictor_analysis(case_type: str, facts: str, evidence: list[str], answers: list[dict], lang: str, question_target: int = 6) -> dict:
+    parsed, source_detail = _generate_case_predictor_with_gemini(case_type, facts, evidence, answers, lang, question_target)
+    result = parsed or _fallback_case_predictor(case_type, facts, evidence, answers, question_target)
+    result["source"] = "gemini" if parsed else "backend_fallback"
+    result["source_detail"] = None if parsed else source_detail
+    return result
 
 
 def get_retrieval_candidates(user_message: str, intent: str = "") -> list:

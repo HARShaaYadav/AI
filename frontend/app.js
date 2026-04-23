@@ -1699,90 +1699,21 @@
     questions: [],
     answers: [],
     summary: '',
+    questionTarget: 6,
   };
 
-  function getPredictCaseLabel(caseType, lang) {
-    const labels = {
-      theft: { en: 'theft or robbery', hi: 'chori ya robbery' },
-      dv: { en: 'domestic violence', hi: 'domestic violence' },
-      wage: { en: 'wage or labour non-payment', hi: 'wage ya labour non-payment' },
-      harass: { en: 'harassment or POSH', hi: 'harassment ya POSH' },
-      land: { en: 'land or property dispute', hi: 'land ya property dispute' },
-      cyber: { en: 'cyber fraud', hi: 'cyber fraud' },
-      consumer: { en: 'consumer complaint', hi: 'consumer complaint' }
-    };
-    return (labels[caseType] && labels[caseType][lang]) || (labels[caseType] && labels[caseType].en) || 'legal dispute';
+  async function requestCasePredictor() {
+    return apiCall('/api/case-predictor', {
+      case_type: predictSession.caseType,
+      facts: predictSession.facts,
+      evidence: predictSession.selectedEvidence,
+      language: predictSession.lang,
+      answers: predictSession.answers,
+      question_target: predictSession.questionTarget,
+    });
   }
 
-  function summarizeFactsSnippet(facts) {
-    const clean = String(facts || '').replace(/\s+/g, ' ').trim();
-    if (clean.length <= 160) return clean;
-    return clean.slice(0, 157).trimEnd() + '...';
-  }
-
-  function buildCaseSummary(caseType, facts, evidenceCount, lang) {
-    const caseLabel = getPredictCaseLabel(caseType, lang);
-    const evidenceText = evidenceCount === 0
-      ? (lang === 'hi' ? 'No independent evidence is clearly shown yet.' : 'No independent evidence is clearly shown yet.')
-      : (lang === 'hi'
-        ? `At this stage, ${evidenceCount} evidence category${evidenceCount > 1 ? 'ies are' : ' is'} being relied on.`
-        : `At this stage, ${evidenceCount} evidence category${evidenceCount > 1 ? 'ies are' : ' is'} being relied on.`);
-    if (lang === 'hi') {
-      return `This appears to be a ${caseLabel} matter. ${summarizeFactsSnippet(facts)} ${evidenceText}`;
-    }
-    return `This appears to be a ${caseLabel} matter. ${summarizeFactsSnippet(facts)} ${evidenceText}`;
-  }
-
-  function buildCrossQuestions(caseType, lang, trainingData, selectedEvidence, factsLower) {
-    const hasTimeline = hasTimelineSignal(factsLower);
-    const hasReport = hasReportSignal(factsLower);
-    const evidenceCount = selectedEvidence.length;
-    const lawAnchors = {
-      theft: { en: 'Under IPC 378/379 and CrPC 154, when exactly did you discover the theft and when was it reported?', hi: 'Under IPC 378/379 and CrPC 154, when exactly did you discover the theft and when was it reported?' },
-      dv: { en: 'Under the DV Act and IPC 498A, which incident is your strongest legally provable act of abuse?', hi: 'Under the DV Act and IPC 498A, which incident is your strongest legally provable act of abuse?' },
-      wage: { en: 'Under labour law, what exact amount is due and for what exact work period?', hi: 'Under labour law, what exact amount is due and for what exact work period?' },
-      harass: { en: 'Under POSH or IPC 354A, what exact conduct are you saying crossed the legal line?', hi: 'Under POSH or IPC 354A, what exact conduct are you saying crossed the legal line?' },
-      land: { en: 'What title, possession, or revenue record gives you the stronger legal footing in this property dispute?', hi: 'What title, possession, or revenue record gives you the stronger legal footing in this property dispute?' },
-      cyber: { en: 'Under the IT Act and IPC 420, what digital trail directly links the fraud to the accused account or number?', hi: 'Under the IT Act and IPC 420, what digital trail directly links the fraud to the accused account or number?' },
-      consumer: { en: 'Under consumer law, what defect, deficiency, or unfair practice can you prove with records?', hi: 'Under consumer law, what defect, deficiency, or unfair practice can you prove with records?' }
-    };
-    const judgeExtras = [];
-    const lawyerExtras = [];
-
-    if (!hasTimeline) {
-      judgeExtras.push(lang === 'hi'
-        ? 'Your timeline is still unclear. Give the exact sequence in dates, not general statements.'
-        : 'Your timeline is still unclear. Give the exact sequence in dates, not general statements.');
-    }
-    if (!hasReport) {
-      judgeExtras.push((lawAnchors[caseType] || lawAnchors.theft)[lang] || (lawAnchors[caseType] || lawAnchors.theft).en);
-    }
-    if (evidenceCount === 0) {
-      lawyerExtras.push(lang === 'hi'
-        ? 'So at present, you have no strong independent proof beyond your own version. Why should the court prefer it?'
-        : 'So at present, you have no strong independent proof beyond your own version. Why should the court prefer it?');
-    } else {
-      lawyerExtras.push(lang === 'hi'
-        ? 'Which one piece of evidence is strongest, and can the other side attack its authenticity or relevance?'
-        : 'Which one piece of evidence is strongest, and can the other side attack its authenticity or relevance?');
-    }
-
-    const judgePool = trainingData.judgeQuestions[lang].concat(judgeExtras);
-    const lawyerPool = trainingData.opponentQuestions[lang].concat(lawyerExtras);
-    const questions = [];
-    const totalQuestions = 6;
-    for (let i = 0; i < totalQuestions; i++) {
-      const isJudge = i % 2 === 0;
-      const pool = isJudge ? judgePool : lawyerPool;
-      questions.push({
-        role: isJudge ? 'judge' : 'lawyer',
-        text: pool[Math.min(Math.floor(i / 2), pool.length - 1)]
-      });
-    }
-    return questions;
-  }
-
-  function showPredictQuestion() {
+  function showPredictQuestion(questionData) {
     const flow = document.getElementById('predInteractiveFlow');
     const legacy = document.getElementById('predLegacyReport');
     const counter = document.getElementById('predQuestionCounter');
@@ -1790,119 +1721,60 @@
     const question = document.getElementById('predCurrentQuestion');
     const answerInput = document.getElementById('predAnswerInput');
     const answerBtn = document.getElementById('predAnswerBtn');
-    const index = predictSession.answers.length;
-    const current = predictSession.questions[index];
     flow.style.display = 'block';
     legacy.style.display = 'none';
     document.getElementById('predCaseSummaryText').textContent = predictSession.summary;
-    counter.textContent = `Question ${index + 1} of ${predictSession.questions.length}`;
-    role.textContent = current.role === 'judge' ? 'Judge' : 'Opposing Lawyer';
-    question.textContent = current.text;
+    counter.textContent = `Question ${predictSession.answers.length + 1} of ${predictSession.questionTarget}`;
+    role.textContent = questionData.role;
+    question.textContent = questionData.text;
     answerInput.value = '';
     answerInput.focus();
-    answerBtn.textContent = index === predictSession.questions.length - 1 ? 'Finish Cross-Examination' : 'Submit Answer';
+    answerBtn.disabled = false;
+    answerBtn.textContent = predictSession.answers.length + 1 === predictSession.questionTarget ? 'Finish Cross-Examination' : 'Submit Answer';
   }
 
-  function estimateReportMetrics(caseType, lang, selectedEvidence, combinedText, answersCount, trainingData) {
-    let winProbability = trainingData.baseConfidence;
-    const evidenceCount = selectedEvidence.length;
-    const hasTimeline = hasTimelineSignal(combinedText);
-    const hasReport = hasReportSignal(combinedText);
-    const hasEvidence = hasEvidenceNarrative(combinedText) || evidenceCount > 0;
-    const detailBonus = combinedText.length > 420 ? 6 : (combinedText.length > 220 ? 3 : -5);
-
-    if (evidenceCount >= 3) winProbability += 12;
-    else if (evidenceCount >= 1) winProbability += 6;
-    else winProbability -= 14;
-
-    if (hasTimeline) winProbability += 6;
-    else winProbability -= 8;
-
-    if (hasReport) winProbability += 5;
-    else winProbability -= 7;
-
-    if (hasEvidence) winProbability += 5;
-    else winProbability -= 6;
-
-    if (answersCount < 5) winProbability -= 8;
-    winProbability += detailBonus;
-    winProbability = Math.max(18, Math.min(92, winProbability));
-
-    const completeness = [hasTimeline, hasReport, hasEvidence, combinedText.length > 220, answersCount >= 5].filter(Boolean).length;
-    const confidenceScore = completeness >= 4 ? 'High' : (completeness >= 3 ? 'Medium' : 'Low');
+  function finalizePredictSession(report) {
+    const strengths = report.strengths || [];
+    const weaknesses = report.weaknesses || [];
+    const missingEvidence = report.missing_evidence || [];
+    const legalRisks = report.legal_risks || [];
+    const suggestions = report.suggestions || [];
+    const winProbability = Math.max(0, Math.min(100, Number(report.win_probability) || 0));
+    const confidenceScore = report.confidence_score || 'Low';
     const pressureLabel = winProbability < 45 ? t('predPressureHigh') : (winProbability < 70 ? t('predPressureMedium') : t('predPressureLow'));
     const readinessLabel = winProbability >= 75 ? t('predReadyStrong') : (winProbability >= 55 ? t('predReadyModerate') : t('predReadyFragile'));
-
-    return { winProbability, confidenceScore, pressureLabel, readinessLabel, hasTimeline, hasReport, hasEvidence };
-  }
-
-  function finalizePredictSession() {
-    const lang = predictSession.lang;
-    const trainingData = CASE_TRAINING_DATA[predictSession.caseType] || CASE_TRAINING_DATA.theft;
-    const combinedText = `${predictSession.facts} ${predictSession.answers.join(' ')}`.toLowerCase();
-    const metrics = estimateReportMetrics(
-      predictSession.caseType,
-      lang,
-      predictSession.selectedEvidence,
-      combinedText,
-      predictSession.answers.length,
-      trainingData
-    );
-
-    const strengths = [];
-    const weaknesses = [];
-    const missingEvidence = [];
-    const legalRisks = [];
-    const suggestions = trainingData.actionSteps[lang].slice(0, 4);
-
-    if (predictSession.selectedEvidence.length > 0) strengths.push(lang === 'hi' ? 'You have at least some identified evidence categories supporting the case.' : 'You have at least some identified evidence categories supporting the case.');
-    if (metrics.hasTimeline) strengths.push(lang === 'hi' ? 'Your version contains some chronological structure, which improves courtroom clarity.' : 'Your version contains some chronological structure, which improves courtroom clarity.');
-    if (metrics.hasReport) strengths.push(lang === 'hi' ? 'There is at least some indication that the matter was reported or documented.' : 'There is at least some indication that the matter was reported or documented.');
-    if (predictSession.answers.length >= 5) strengths.push(lang === 'hi' ? 'You answered sustained cross-questions, which helps reveal a more stable theory of the case.' : 'You answered sustained cross-questions, which helps reveal a more stable theory of the case.');
-
-    if (!metrics.hasTimeline) weaknesses.push(trainingData.weaknessHints.missingTimeline[lang]);
-    if (!metrics.hasReport) weaknesses.push(lang === 'hi' ? 'It is still unclear when the proper authority was informed, which weakens procedural credibility.' : 'It is still unclear when the proper authority was informed, which weakens procedural credibility.');
-    if (predictSession.selectedEvidence.length === 0) weaknesses.push(trainingData.weaknessHints.missingEvidence[lang]);
-    if (combinedText.length < 260) weaknesses.push(lang === 'hi' ? 'Your version remains too short for a strong contested hearing.' : 'Your version remains too short for a strong contested hearing.');
-    weaknesses.push(trainingData.weaknessHints.generic[lang]);
-
-    if (!predictSession.selectedEvidence.includes('docs')) missingEvidence.push(lang === 'hi' ? 'Primary documents, receipts, records, or written complaint trail.' : 'Primary documents, receipts, records, or written complaint trail.');
-    if (!predictSession.selectedEvidence.includes('witness')) missingEvidence.push(lang === 'hi' ? 'Independent witness support or corroboration.' : 'Independent witness support or corroboration.');
-    if (!predictSession.selectedEvidence.includes('digital') && !predictSession.selectedEvidence.includes('cctv')) missingEvidence.push(lang === 'hi' ? 'Digital trail, CCTV, screenshots, or timestamped communication.' : 'Digital trail, CCTV, screenshots, or timestamped communication.');
-
-    if (!metrics.hasTimeline) legalRisks.push(lang === 'hi' ? 'An unclear sequence allows the other side to attack reliability and chronology.' : 'An unclear sequence allows the other side to attack reliability and chronology.');
-    if (!metrics.hasReport) legalRisks.push(lang === 'hi' ? 'Delay or uncertainty in reporting may be used against you under cross-examination.' : 'Delay or uncertainty in reporting may be used against you under cross-examination.');
-    if (predictSession.selectedEvidence.length === 0) legalRisks.push(lang === 'hi' ? 'The matter may reduce to one version against another without enough corroboration.' : 'The matter may reduce to one version against another without enough corroboration.');
-    legalRisks.push(lang === 'hi' ? 'Any exaggeration, omission, or mismatch with records will be heavily exploited by the opposing side.' : 'Any exaggeration, omission, or mismatch with records will be heavily exploited by the opposing side.');
 
     document.getElementById('predStructuredReport').innerHTML = `
       <h4>Final Case Prediction Report</h4>
       <ol class="how-list">
-        <li><strong>Case Summary:</strong> ${escapeHtml(predictSession.summary)}</li>
+        <li><strong>Case Summary:</strong> ${escapeHtml(report.case_summary || predictSession.summary)}</li>
         <li><strong>Strengths of the Case:</strong> ${escapeHtml(strengths.join(' '))}</li>
         <li><strong>Weaknesses of the Case:</strong> ${escapeHtml(weaknesses.join(' '))}</li>
         <li><strong>Missing Evidence:</strong> ${escapeHtml(missingEvidence.join(' '))}</li>
         <li><strong>Legal Risks:</strong> ${escapeHtml(legalRisks.join(' '))}</li>
         <li><strong>Suggestions to Improve Case:</strong> ${escapeHtml(suggestions.join(' '))}</li>
-        <li><strong>Estimated Win Probability:</strong> ${metrics.winProbability}%</li>
-        <li><strong>Confidence Score:</strong> ${metrics.confidenceScore}</li>
+        <li><strong>Estimated Win Probability:</strong> ${winProbability}%</li>
+        <li><strong>Confidence Score:</strong> ${escapeHtml(confidenceScore)}</li>
       </ol>
     `;
 
-    document.getElementById('meterSuccess').style.width = metrics.winProbability + '%';
-    document.getElementById('meterSuccessVal').textContent = metrics.winProbability + '%';
-    document.getElementById('predTimeVal').textContent = metrics.readinessLabel;
-    document.getElementById('predCostVal').textContent = metrics.pressureLabel;
+    document.getElementById('meterSuccess').style.width = winProbability + '%';
+    document.getElementById('meterSuccessVal').textContent = winProbability + '%';
+    document.getElementById('predTimeVal').textContent = readinessLabel;
+    document.getElementById('predCostVal').textContent = pressureLabel;
     document.getElementById('predSimilarVal').textContent = String(weaknesses.length);
-    document.getElementById('predLawsList').innerHTML = trainingData.laws.map(law => `<span class="law-tag">${law}</span>`).join('');
+    document.getElementById('predLawsList').innerHTML = (CASE_TRAINING_DATA[predictSession.caseType] || CASE_TRAINING_DATA.theft).laws
+      .map(law => `<span class="law-tag">${law}</span>`).join('');
     document.getElementById('predJudgeList').innerHTML = renderPracticeList(
-      predictSession.questions.filter(item => item.role === 'judge').map(item => item.text)
+      predictSession.answers.filter(item => item.role === 'Judge').map(item => item.question)
     );
     document.getElementById('predOpponentList').innerHTML = renderPracticeList(
-      predictSession.questions.filter(item => item.role === 'lawyer').map(item => item.text)
+      predictSession.answers.filter(item => item.role === 'Opposing Lawyer').map(item => item.question)
     );
-    document.getElementById('predWeaknessList').innerHTML = renderWeaknessList(weaknesses);
-    document.getElementById('predActionsList').innerHTML = suggestions.map(step => `<li>${step}</li>`).join('');
+    document.getElementById('predWeaknessList').innerHTML = renderWeaknessList(
+      weaknesses.concat(missingEvidence).concat(legalRisks).slice(0, 8)
+    );
+    document.getElementById('predActionsList').innerHTML = suggestions.map(step => `<li>${escapeHtml(step)}</li>`).join('');
 
     document.getElementById('predInteractiveFlow').style.display = 'none';
     document.getElementById('predLegacyReport').style.display = 'block';
@@ -1911,7 +1783,7 @@
   }
 
   const predictBtn = document.getElementById('predictBtn');
-  if (predictBtn) predictBtn.addEventListener('click', () => {
+  if (predictBtn) predictBtn.addEventListener('click', async () => {
     const caseType = document.getElementById('predictCaseType').value;
     if (!caseType) { alert(t('alertCaseType')); return; }
     const facts = document.getElementById('predictFacts').value.trim();
@@ -1919,29 +1791,41 @@
 
     const results = document.getElementById('predictResults');
     const lang = getLang();
-    const trainingData = CASE_TRAINING_DATA[caseType] || CASE_TRAINING_DATA.theft;
     const selectedEvidence = Array.from(document.querySelectorAll('#page-predict input[type="checkbox"]:checked'))
       .map(input => input.value)
       .filter(value => value !== 'none');
     const hasNoEvidence = document.querySelector('#page-predict input[value="none"]')?.checked;
-    const evidenceCount = hasNoEvidence ? 0 : selectedEvidence.length;
-    const factsLower = facts.toLowerCase();
     predictSession.active = true;
     predictSession.caseType = caseType;
     predictSession.facts = facts;
     predictSession.lang = lang;
-    predictSession.selectedEvidence = selectedEvidence;
+    predictSession.selectedEvidence = hasNoEvidence ? [] : selectedEvidence;
     predictSession.answers = [];
-    predictSession.summary = buildCaseSummary(caseType, facts, evidenceCount, lang);
-    predictSession.questions = buildCrossQuestions(caseType, lang, trainingData, selectedEvidence, factsLower);
-
     results.style.display = 'block';
-    showPredictQuestion();
-    results.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('predInteractiveFlow').style.display = 'block';
+    document.getElementById('predLegacyReport').style.display = 'none';
+    document.getElementById('predCaseSummaryText').textContent = 'Analyzing your case...';
+    document.getElementById('predCurrentQuestion').textContent = '';
+    document.getElementById('predAnswerBtn').disabled = true;
+    try {
+      const response = await requestCasePredictor();
+      predictSession.summary = response.case_summary || '';
+      if (response.next_step === 'final_report' && response.report) {
+        finalizePredictSession(response.report);
+      } else if (response.question) {
+        showPredictQuestion(response.question);
+      } else {
+        throw new Error('Case predictor did not return a usable question.');
+      }
+      results.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      predictSession.active = false;
+      alert('Case predictor failed: ' + err.message);
+    }
   });
 
   const predAnswerBtn = document.getElementById('predAnswerBtn');
-  if (predAnswerBtn) predAnswerBtn.addEventListener('click', () => {
+  if (predAnswerBtn) predAnswerBtn.addEventListener('click', async () => {
     if (!predictSession.active) return;
     const answerInput = document.getElementById('predAnswerInput');
     const answer = answerInput.value.trim();
@@ -1949,12 +1833,32 @@
       alert('Please answer the current cross-question before proceeding.');
       return;
     }
-    predictSession.answers.push(answer);
-    if (predictSession.answers.length >= predictSession.questions.length) {
-      finalizePredictSession();
-      return;
+    const currentRole = document.getElementById('predQuestionRole').textContent.trim();
+    const currentQuestion = document.getElementById('predCurrentQuestion').textContent.trim();
+    predAnswerBtn.disabled = true;
+    predAnswerBtn.textContent = 'Analyzing...';
+    predictSession.answers.push({
+      role: currentRole,
+      question: currentQuestion,
+      answer: answer,
+    });
+    try {
+      const response = await requestCasePredictor();
+      predictSession.summary = response.case_summary || predictSession.summary;
+      if (response.next_step === 'final_report' && response.report) {
+        finalizePredictSession(response.report);
+        return;
+      }
+      if (!response.question) {
+        throw new Error('Case predictor did not return the next question.');
+      }
+      showPredictQuestion(response.question);
+    } catch (err) {
+      predAnswerBtn.disabled = false;
+      predAnswerBtn.textContent = 'Submit Answer';
+      predictSession.answers.pop();
+      alert('Case predictor failed: ' + err.message);
     }
-    showPredictQuestion();
   });
 
   /* ── RISK SCORE ────────────────────────────────────────── */
