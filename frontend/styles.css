@@ -184,6 +184,67 @@ body {
   font-weight: 500;
 }
 
+.predict-duel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.practice-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.85), transparent 45%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.practice-panel-judge {
+  border-top: 4px solid var(--primary);
+}
+
+.practice-panel-opposition {
+  border-top: 4px solid var(--danger);
+}
+
+.practice-panel-sub {
+  color: var(--text-secondary);
+  font-size: .84rem;
+  margin: 4px 0 12px;
+}
+
+.practice-list {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--text);
+}
+
+.weakness-box {
+  background: linear-gradient(135deg, rgba(185, 28, 28, 0.06), rgba(245, 158, 11, 0.08));
+  border: 1px solid rgba(185, 28, 28, 0.12);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin: 18px 0;
+}
+
+.weakness-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weakness-item {
+  background: rgba(255, 255, 255, 0.7);
+  border-left: 4px solid var(--warning);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+}
+
 .emergency-link:hover {
   text-decoration: underline;
 }

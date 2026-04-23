@@ -1520,14 +1520,252 @@
     consumer: { success: 78, time: '3-12', cost: '₹1-5K', similar: 35, won: 65, settled: 20, lost: 15, laws: ['CPA 2019', 'Legal Metrology Act', 'FSSAI Act'] }
   };
 
+  const CASE_TRAINING_DATA = {
+    theft: {
+      baseConfidence: 64,
+      laws: ['IPC 378', 'IPC 379', 'IPC 411', 'CrPC 154'],
+      judgeQuestions: {
+        en: ['When did the theft happen, and can you show the timeline clearly?', 'What specific property was taken, and how will you prove ownership?', 'Did you report the incident promptly to police or any authority?'],
+        hi: ['चोरी कब हुई, और क्या आप समय-क्रम साफ़ बता सकते हैं?', 'कौन सी वस्तु चोरी हुई, और उसके मालिक होने का सबूत कैसे देंगे?', 'क्या आपने घटना की रिपोर्ट तुरंत पुलिस या किसी प्राधिकरण को दी थी?']
+      },
+      opponentQuestions: {
+        en: ['Do you have proof that the accused had access to the property?', 'If there is no CCTV or witness, why should your version be believed?', 'Can the other side say the property was misplaced and not stolen?'],
+        hi: ['क्या आपके पास यह साबित करने का सबूत है कि आरोपी को उस संपत्ति तक पहुंच थी?', 'अगर CCTV या गवाह नहीं है, तो आपकी बात पर भरोसा क्यों किया जाए?', 'क्या सामने वाला यह कह सकता है कि सामान खो गया था, चोरी नहीं हुआ?']
+      },
+      weaknessHints: {
+        missingEvidence: { en: 'Ownership or theft proof is thin right now.', hi: 'इस समय मालिकाना हक या चोरी का सबूत कमज़ोर है।' },
+        missingTimeline: { en: 'Your timeline may be too vague for police or court follow-up.', hi: 'आपकी समय-रेखा पुलिस या अदालत के लिए बहुत अस्पष्ट लग सकती है।' },
+        generic: { en: 'Be ready to explain access, motive, and immediate reporting.', hi: 'पहुँच, कारण और तुरंत रिपोर्ट करने की बात साफ़ रखने की तैयारी करें।' }
+      },
+      actionSteps: {
+        en: ['Collect ownership proof, bills, photos, or item identifiers.', 'Write a clean timeline from last possession to discovery of loss.', 'File or update the complaint/FIR and keep the acknowledgement copy.', 'Ask witnesses or nearby shops for CCTV before footage is deleted.'],
+        hi: ['मालिकाना हक के सबूत, बिल, फोटो या वस्तु की पहचान से जुड़े दस्तावेज़ जुटाएँ।', 'सामान आखिरी बार कब आपके पास था से लेकर गुम होने तक की साफ़ समय-रेखा लिखें।', 'शिकायत या एफ़आईआर दर्ज करें या अपडेट करें और उसकी प्रति सुरक्षित रखें।', 'फुटेज मिटने से पहले गवाहों या आसपास की दुकानों से CCTV के बारे में पूछें।']
+      }
+    },
+    dv: {
+      baseConfidence: 70,
+      laws: ['DV Act 2005', 'IPC 498A', 'CrPC 125', 'HMA 1955'],
+      judgeQuestions: {
+        en: ['What specific incidents happened, and on what dates?', 'Do you have medical records, messages, or prior complaints?', 'Is there an immediate safety concern for you or any children?'],
+        hi: ['कौन-कौन सी घटनाएँ हुईं, और वे किन तारीखों पर हुईं?', 'क्या आपके पास मेडिकल रिकॉर्ड, संदेश या पुरानी शिकायतें हैं?', 'क्या आपके या किसी बच्चे के लिए अभी तत्काल सुरक्षा का खतरा है?']
+      },
+      opponentQuestions: {
+        en: ['Why was there no complaint earlier if the abuse was repeated?', 'Can the other side say this is a family dispute and not violence?', 'Do your messages or witnesses support repeated abuse or control?'],
+        hi: ['अगर हिंसा बार-बार हुई, तो पहले शिकायत क्यों नहीं की गई?', 'क्या दूसरी तरफ़ इसे सिर्फ़ पारिवारिक विवाद कह सकती है, हिंसा नहीं?', 'क्या आपके संदेश या गवाह लगातार हिंसा या नियंत्रण को साबित करते हैं?']
+      },
+      weaknessHints: {
+        missingEvidence: { en: 'Independent proof of abuse or injury looks limited.', hi: 'हिंसा या चोट का स्वतंत्र सबूत सीमित दिख रहा है।' },
+        missingTimeline: { en: 'Repeated incidents need a clearer sequence.', hi: 'बार-बार हुई घटनाओं का क्रम और साफ़ होना चाहिए।' },
+        generic: { en: 'Consistency across incidents, injuries, and witnesses will matter a lot.', hi: 'घटनाओं, चोटों और गवाहों में एकरूपता बहुत महत्वपूर्ण होगी।' }
+      },
+      actionSteps: {
+        en: ['Write each incident separately with date, place, and who saw it.', 'Preserve medical papers, photos, chats, calls, and prior complaints.', 'If safety is urgent, contact police, a protection officer, or a trusted shelter immediately.', 'Seek legal aid or a support organization for protection, residence, and maintenance options.'],
+        hi: ['हर घटना को तारीख, स्थान और गवाहों के साथ अलग-अलग लिखें।', 'मेडिकल कागज़, फोटो, चैट, कॉल और पुरानी शिकायतें सुरक्षित रखें।', 'अगर सुरक्षा का खतरा है, तो तुरंत पुलिस, प्रोटेक्शन ऑफिसर या सुरक्षित आश्रय से संपर्क करें।', 'सुरक्षा, निवास और भरण-पोषण के विकल्पों के लिए कानूनी सहायता या सहायता संगठन से जुड़ें।']
+      }
+    },
+    wage: {
+      baseConfidence: 76,
+      laws: ['Payment of Wages Act', 'Minimum Wages Act', 'ID Act 1947'],
+      judgeQuestions: {
+        en: ['What work did you do, and what amount is unpaid?', 'Do you have salary slips, attendance, bank records, or chats from the employer?', 'Have you already made a written demand for pending wages?'],
+        hi: ['आपने कौन सा काम किया, और कितना वेतन बकाया है?', 'क्या आपके पास सैलरी स्लिप, उपस्थिति, बैंक रिकॉर्ड या नियोक्ता की चैट है?', 'क्या आपने बकाया वेतन के लिए पहले लिखित मांग की है?']
+      },
+      opponentQuestions: {
+        en: ['Can the employer say you were absent or left without notice?', 'If there is no written contract, how will you prove the pay rate?', 'Do your records show the exact period of unpaid work?'],
+        hi: ['क्या नियोक्ता कह सकता है कि आप अनुपस्थित थे या बिना सूचना चले गए?', 'अगर लिखित अनुबंध नहीं है, तो वेतन दर कैसे साबित करेंगे?', 'क्या आपके रिकॉर्ड में बकाया काम की पूरी अवधि साफ़ दिखती है?']
+      },
+      weaknessHints: {
+        missingEvidence: { en: 'Employment records and payment proof need strengthening.', hi: 'रोज़गार रिकॉर्ड और भुगतान का सबूत और मजबूत करना होगा।' },
+        missingTimeline: { en: 'The unpaid work period is not yet mapped clearly.', hi: 'बकाया काम की अवधि अभी साफ़ तरह से दर्ज नहीं है।' },
+        generic: { en: 'Your strongest path is precise wage math backed by work records.', hi: 'काम के रिकॉर्ड के साथ सटीक वेतन गणना आपका सबसे मजबूत आधार होगा।' }
+      },
+      actionSteps: {
+        en: ['Prepare a month-by-month unpaid wage calculation.', 'Collect attendance proof, bank entries, chats, ID cards, and coworker support.', 'Send a written demand to the employer and keep a copy.', 'Approach the Labour Commissioner or legal aid if the employer still refuses.'],
+        hi: ['महीने-दर-महीने बकाया वेतन की गणना तैयार करें।', 'उपस्थिति, बैंक एंट्री, चैट, आईडी कार्ड और सहकर्मियों के समर्थन के सबूत रखें।', 'नियोक्ता को लिखित मांग भेजें और उसकी प्रति सुरक्षित रखें।', 'अगर नियोक्ता फिर भी मना करे तो श्रम आयुक्त या कानूनी सहायता से संपर्क करें।']
+      }
+    },
+    harass: {
+      baseConfidence: 66,
+      laws: ['POSH Act 2013', 'IPC 354A', 'IPC 509'],
+      judgeQuestions: {
+        en: ['What exactly was said or done, and where did it happen?', 'Did you report it internally or to any authority?', 'Are there messages, emails, CCTV clips, or coworkers who noticed the conduct?'],
+        hi: ['ठीक-ठीक क्या कहा गया या किया गया, और यह कहाँ हुआ?', 'क्या आपने इसकी शिकायत संस्था के अंदर या किसी प्राधिकरण को दी?', 'क्या संदेश, ईमेल, CCTV या सहकर्मी हैं जिन्होंने यह व्यवहार देखा?']
+      },
+      opponentQuestions: {
+        en: ['Can the other side say your interpretation is exaggerated or mistaken?', 'If others were present, who will support your version?', 'Did you preserve the original chats or screenshots with dates?'],
+        hi: ['क्या दूसरी तरफ़ कह सकती है कि आपने बात को बढ़ा-चढ़ाकर समझा?', 'अगर दूसरे लोग मौजूद थे, तो कौन आपकी बात का समर्थन करेगा?', 'क्या आपने तारीख सहित मूल चैट या स्क्रीनशॉट सुरक्षित रखे हैं?']
+      },
+      weaknessHints: {
+        missingEvidence: { en: 'Harassment claims are often attacked when records are missing.', hi: 'जब रिकॉर्ड नहीं होते, तो उत्पीड़न के दावों पर जल्दी हमला होता है।' },
+        missingTimeline: { en: 'You may need a clearer sequence of incidents and complaints.', hi: 'घटनाओं और शिकायतों का क्रम और साफ़ चाहिए।' },
+        generic: { en: 'Precision about words, context, and witnesses will improve credibility.', hi: 'शब्दों, संदर्भ और गवाहों की सटीकता विश्वसनीयता बढ़ाएगी।' }
+      },
+      actionSteps: {
+        en: ['Record each incident with date, place, and exact conduct.', 'Keep original chats, mails, screenshots, and reporting history.', 'Use the POSH/Internal Committee route where applicable and preserve acknowledgement.', 'Seek support from a trusted colleague, legal aid, or counselor if pressure is escalating.'],
+        hi: ['हर घटना को तारीख, स्थान और सटीक व्यवहार के साथ दर्ज करें।', 'मूल चैट, मेल, स्क्रीनशॉट और शिकायत इतिहास सुरक्षित रखें।', 'जहाँ लागू हो, POSH/आंतरिक समिति की प्रक्रिया अपनाएँ और रसीद सुरक्षित रखें।', 'अगर दबाव बढ़ रहा है, तो भरोसेमंद सहकर्मी, कानूनी सहायता या काउंसलर से मदद लें।']
+      }
+    },
+    land: {
+      baseConfidence: 58,
+      laws: ['TPA 1882', 'Registration Act', 'Specific Relief Act', 'Limitation Act'],
+      judgeQuestions: {
+        en: ['Which property is involved, and what title or possession documents do you hold?', 'When did the dispute begin, and what happened after that?', 'Have you sent a notice or made any complaint about encroachment or interference?'],
+        hi: ['कौन सी संपत्ति विवाद में है, और आपके पास मालिकाना या कब्जे के कौन से कागज़ हैं?', 'विवाद कब शुरू हुआ, और उसके बाद क्या हुआ?', 'क्या आपने अतिक्रमण या दखल के बारे में कोई नोटिस या शिकायत दी है?']
+      },
+      opponentQuestions: {
+        en: ['Can the other side show stronger title papers or longer possession?', 'If boundaries are disputed, do you have maps, mutation, or survey support?', 'Is there any delay that can be used against your claim?'],
+        hi: ['क्या दूसरी तरफ़ मजबूत मालिकाना कागज़ या लंबे कब्जे का दावा दिखा सकती है?', 'अगर सीमा विवाद है, तो क्या आपके पास नक्शा, म्यूटेशन या सर्वे का सहारा है?', 'क्या कोई देरी है जिसे आपके खिलाफ़ इस्तेमाल किया जा सकता है?']
+      },
+      weaknessHints: {
+        missingEvidence: { en: 'Property papers and possession proof may not yet be enough.', hi: 'संपत्ति के कागज़ और कब्जे का सबूत अभी पर्याप्त नहीं लग रहा।' },
+        missingTimeline: { en: 'Land disputes get weaker when delay and sequence are unclear.', hi: 'भूमि विवाद तब कमजोर पड़ते हैं जब देरी और घटनाओं का क्रम अस्पष्ट हो।' },
+        generic: { en: 'Boundary details, title chain, and prompt objection will be critical.', hi: 'सीमा विवरण, मालिकाना श्रृंखला और समय पर आपत्ति बहुत महत्वपूर्ण होगी।' }
+      },
+      actionSteps: {
+        en: ['Assemble title deeds, tax receipts, mutation entries, and survey records.', 'Make a clear chronology of ownership, possession, and interference.', 'Send a written objection or legal notice and preserve proof of service.', 'Consult a property lawyer or legal aid before the dispute hardens further.'],
+        hi: ['टाइटल डीड, टैक्स रसीद, म्यूटेशन एंट्री और सर्वे रिकॉर्ड इकट्ठा करें।', 'मालिकाना, कब्जे और दखल की साफ़ समय-रेखा बनाएँ।', 'लिखित आपत्ति या कानूनी नोटिस भेजें और उसकी सेवा का सबूत रखें।', 'विवाद और बढ़ने से पहले संपत्ति वकील या कानूनी सहायता से सलाह लें।']
+      }
+    },
+    cyber: {
+      baseConfidence: 61,
+      laws: ['IT Act 2000', 'IT Amendment 2008', 'IPC 420', 'IPC 468'],
+      judgeQuestions: {
+        en: ['What exactly happened online, and through which platform or account?', 'Do you have transaction IDs, screenshots, emails, or device logs?', 'How quickly did you report the fraud or preserve the digital trail?'],
+        hi: ['ऑनलाइन क्या हुआ, और किस प्लेटफ़ॉर्म या अकाउंट पर हुआ?', 'क्या आपके पास ट्रांजैक्शन आईडी, स्क्रीनशॉट, ईमेल या डिवाइस लॉग हैं?', 'आपने धोखाधड़ी की रिपोर्ट कितनी जल्दी की या डिजिटल रिकॉर्ड कितनी जल्दी सुरक्षित किया?']
+      },
+      opponentQuestions: {
+        en: ['Can the other side say the screenshots are incomplete or altered?', 'Do you know who controlled the account or number involved?', 'If money moved fast, do you have bank or wallet records tying it to the fraud?'],
+        hi: ['क्या दूसरी तरफ़ कह सकती है कि स्क्रीनशॉट अधूरे या बदले गए हैं?', 'क्या आपको पता है कि संबंधित अकाउंट या नंबर किसके नियंत्रण में था?', 'अगर पैसा जल्दी ट्रांसफर हुआ, तो क्या आपके पास बैंक या वॉलेट रिकॉर्ड हैं जो धोखाधड़ी से जुड़ते हों?']
+      },
+      weaknessHints: {
+        missingEvidence: { en: 'Digital evidence may disappear quickly if not preserved fully.', hi: 'अगर डिजिटल सबूत पूरी तरह सुरक्षित नहीं किए गए, तो वे जल्दी गायब हो सकते हैं।' },
+        missingTimeline: { en: 'Cyber cases need minute-by-minute reporting detail where possible.', hi: 'साइबर मामलों में जहाँ संभव हो, मिनट-दर-मिनट रिपोर्टिंग विवरण मदद करता है।' },
+        generic: { en: 'Source account details and rapid reporting will shape your case strength.', hi: 'स्रोत अकाउंट का विवरण और तेज़ रिपोर्टिंग केस की ताकत तय करेंगे।' }
+      },
+      actionSteps: {
+        en: ['Preserve screenshots, transaction IDs, phone numbers, emails, and URLs in one place.', 'Report quickly to the cyber portal, bank, wallet provider, and police.', 'Write the exact sequence from first contact to money loss or account misuse.', 'Do not delete devices or chats that may contain logs.'],
+        hi: ['स्क्रीनशॉट, ट्रांजैक्शन आईडी, फोन नंबर, ईमेल और URL एक जगह सुरक्षित रखें।', 'साइबर पोर्टल, बैंक, वॉलेट प्रदाता और पुलिस को तुरंत रिपोर्ट करें।', 'पहले संपर्क से लेकर पैसे के नुकसान या अकाउंट दुरुपयोग तक पूरा क्रम लिखें।', 'ऐसे डिवाइस या चैट डिलीट न करें जिनमें लॉग हो सकते हैं।']
+      }
+    },
+    consumer: {
+      baseConfidence: 74,
+      laws: ['CPA 2019', 'Legal Metrology Act', 'FSSAI Act'],
+      judgeQuestions: {
+        en: ['What product or service failed, and what loss did you suffer?', 'Do you have bills, warranty, chats, or complaint numbers?', 'Did you first ask the seller or platform to fix, refund, or replace the issue?'],
+        hi: ['कौन सा उत्पाद या सेवा खराब निकला, और आपको क्या नुकसान हुआ?', 'क्या आपके पास बिल, वारंटी, चैट या शिकायत नंबर हैं?', 'क्या आपने पहले विक्रेता या प्लेटफ़ॉर्म से सुधार, रिफंड या रिप्लेसमेंट माँगा था?']
+      },
+      opponentQuestions: {
+        en: ['Can the seller say the product was misused or outside warranty?', 'If you want compensation, how will you prove the amount of loss?', 'Do your records show you gave the business a fair chance to respond?'],
+        hi: ['क्या विक्रेता कह सकता है कि उत्पाद का गलत उपयोग हुआ या वारंटी से बाहर था?', 'अगर आप मुआवज़ा चाहते हैं, तो नुकसान की राशि कैसे साबित करेंगे?', 'क्या आपके रिकॉर्ड दिखाते हैं कि आपने व्यवसाय को जवाब देने का उचित मौका दिया था?']
+      },
+      weaknessHints: {
+        missingEvidence: { en: 'Purchase proof and complaint trail must be stronger.', hi: 'खरीद का सबूत और शिकायत का रिकॉर्ड और मजबूत होना चाहिए।' },
+        missingTimeline: { en: 'Your complaint and response timeline needs tightening.', hi: 'शिकायत और जवाब की समय-रेखा और साफ़ होनी चाहिए।' },
+        generic: { en: 'Consumer matters become stronger with receipts, notices, and quantified loss.', hi: 'उपभोक्ता मामलों में रसीद, नोटिस और स्पष्ट नुकसान गणना से ताकत बढ़ती है।' }
+      },
+      actionSteps: {
+        en: ['Keep invoice, warranty, screenshots, and product photos together.', 'Document every complaint, response, and promised resolution.', 'Send one final written demand for refund, replacement, or repair.', 'Quantify your financial loss before filing a consumer complaint.'],
+        hi: ['इनवॉइस, वारंटी, स्क्रीनशॉट और उत्पाद की फोटो एक साथ रखें।', 'हर शिकायत, जवाब और वादे की गई कार्रवाई दर्ज करें।', 'रिफंड, रिप्लेसमेंट या रिपेयर के लिए एक अंतिम लिखित मांग भेजें।', 'उपभोक्ता शिकायत दाखिल करने से पहले अपने आर्थिक नुकसान की गणना करें।']
+      }
+    }
+  };
+
+  function hasTimelineSignal(text) {
+    return /(today|yesterday|last|before|after|date|dated|month|week|year|day|timeline|when|\b\d{1,2}[\/-]\d{1,2}|\b20\d{2}\b|आज|कल|पहले|बाद|तारीख|महीना|साल|दिन|समय)/i.test(text);
+  }
+
+  function hasReportSignal(text) {
+    return /(police|fir|complaint|reported|report|notice|email|helpline|station|portal|शिकायत|रिपोर्ट|एफ़आईआर|एफआईआर|नोटिस|थाना|पोर्टल)/i.test(text);
+  }
+
+  function hasEvidenceNarrative(text) {
+    return /(screenshot|bill|invoice|record|document|photo|video|medical|witness|chat|email|receipt|proof|cctv|message|सबूत|दस्तावेज|फोटो|वीडियो|गवाह|रसीद|चैट|ईमेल|रिकॉर्ड)/i.test(text);
+  }
+
+  function renderPracticeList(items) {
+    return items.map(item => `<li>${item}</li>`).join('');
+  }
+
+  function renderWeaknessList(items) {
+    return items.map(item => `<div class="weakness-item">${item}</div>`).join('');
+  }
+
   const predictBtn = document.getElementById('predictBtn');
   if (predictBtn) predictBtn.addEventListener('click', () => {
     const caseType = document.getElementById('predictCaseType').value;
     if (!caseType) { alert(t('alertCaseType')); return; }
+    const facts = document.getElementById('predictFacts').value.trim();
+    if (!facts) { alert(t('alertCaseFacts')); return; }
 
     const data = CASE_DATA[caseType] || CASE_DATA.theft;
     const results = document.getElementById('predictResults');
     const lang = getLang();
+
+    const trainingData = CASE_TRAINING_DATA[caseType] || CASE_TRAINING_DATA.theft;
+    const selectedEvidence = Array.from(document.querySelectorAll('#page-predict input[type="checkbox"]:checked'))
+      .map(input => input.value)
+      .filter(value => value !== 'none');
+    const hasNoEvidence = document.querySelector('#page-predict input[value="none"]')?.checked;
+    const evidenceCount = hasNoEvidence ? 0 : selectedEvidence.length;
+    const factsLower = facts.toLowerCase();
+
+    let confidence = trainingData.baseConfidence;
+    if (evidenceCount >= 3) confidence += 14;
+    else if (evidenceCount >= 1) confidence += 7;
+    else confidence -= 14;
+
+    if (hasTimelineSignal(factsLower)) confidence += 7;
+    else confidence -= 8;
+
+    if (hasReportSignal(factsLower)) confidence += 5;
+    if (hasEvidenceNarrative(factsLower)) confidence += 4;
+    if (facts.length < 120) confidence -= 8;
+    confidence = Math.max(22, Math.min(94, confidence));
+
+    const readinessLabel = confidence >= 75 ? t('predReadyStrong') : (confidence >= 55 ? t('predReadyModerate') : t('predReadyFragile'));
+    const pressureLabel = confidence < 45 ? t('predPressureHigh') : (confidence < 70 ? t('predPressureMedium') : t('predPressureLow'));
+
+    const weaknesses = [];
+    if (evidenceCount === 0) weaknesses.push(trainingData.weaknessHints.missingEvidence[lang]);
+    if (!hasTimelineSignal(factsLower)) weaknesses.push(trainingData.weaknessHints.missingTimeline[lang]);
+    if (!hasReportSignal(factsLower)) weaknesses.push(lang === 'hi' ? 'अभी तक यह साफ़ नहीं है कि आपने किस प्राधिकरण को रिपोर्ट किया है या आगे क्या कदम उठाया है।' : 'It is not yet clear whether you reported the matter or what step you took next.');
+    if (facts.length < 120) weaknesses.push(lang === 'hi' ? 'आपका विवरण छोटा है; दूसरी तरफ़ इस अस्पष्टता का लाभ उठा सकती है।' : 'Your narrative is still short, so the other side could exploit the missing detail.');
+    weaknesses.push(trainingData.weaknessHints.generic[lang]);
+
+    const judgeQuestions = trainingData.judgeQuestions[lang].slice();
+    const opponentQuestions = trainingData.opponentQuestions[lang].slice();
+
+    if (evidenceCount === 0) {
+      judgeQuestions.push(lang === 'hi' ? 'जब आपके पास प्रत्यक्ष सबूत कम है, तो अदालत आपकी बात पर क्यों भरोसा करे?' : 'When direct proof is limited, why should the court rely on your version?');
+      opponentQuestions.push(lang === 'hi' ? 'क्या यह सच नहीं कि आपके पास आरोप साबित करने वाला कोई मजबूत स्वतंत्र सबूत नहीं है?' : 'Is it not true that you do not yet have strong independent proof for this allegation?');
+    }
+
+    if (!hasTimelineSignal(factsLower)) {
+      judgeQuestions.push(lang === 'hi' ? 'घटनाओं का क्रम क्या है, और किस तारीख को क्या हुआ?' : 'What is the sequence of events, and what happened on which date?');
+    }
+
+    const actions = trainingData.actionSteps[lang].slice();
+    if (evidenceCount === 0) {
+      actions.unshift(lang === 'hi' ? 'सबसे पहले ऐसे स्वतंत्र सबूत खोजें जिन्हें दूसरी तरफ़ आसानी से नकार न सके।' : 'First, look for independent proof that the other side cannot easily deny.');
+    }
+    if (!hasReportSignal(factsLower)) {
+      actions.push(lang === 'hi' ? 'अगर मामला रिपोर्ट योग्य है, तो लिखित शिकायत या उचित प्राधिकरण को सूचना देने पर विचार करें।' : 'If the matter is reportable, consider making a written complaint or notifying the relevant authority.');
+    }
+
+    document.getElementById('meterSuccess').style.width = confidence + '%';
+    document.getElementById('meterSuccessVal').textContent = confidence + '%';
+    document.getElementById('predTimeVal').textContent = readinessLabel;
+    document.getElementById('predCostVal').textContent = pressureLabel;
+    document.getElementById('predSimilarVal').textContent = String(weaknesses.length);
+    document.getElementById('predLawsList').innerHTML = trainingData.laws.map(law => `<span class="law-tag">${law}</span>`).join('');
+    document.getElementById('predJudgeList').innerHTML = renderPracticeList(judgeQuestions);
+    document.getElementById('predOpponentList').innerHTML = renderPracticeList(opponentQuestions);
+    document.getElementById('predWeaknessList').innerHTML = renderWeaknessList(weaknesses);
+    document.getElementById('predActionsList').innerHTML = actions.map(step => `<li>${step}</li>`).join('');
+
+    results.style.display = 'block';
+    results.scrollIntoView({ behavior: 'smooth' });
+    return;
 
     document.getElementById('meterSuccess').style.width = data.success + '%';
     document.getElementById('meterSuccessVal').textContent = data.success + '%';

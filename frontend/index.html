@@ -946,12 +946,12 @@
 
     <!-- ═══ PAGE: CASE PREDICTOR ═══ -->
     <section class="page" id="page-predict">
-      <h2 data-i18n="predictTitle">Case Outcome Predictor</h2>
-      <p class="page-sub" data-i18n="predictSub">Describe your case and our AI will predict the likely outcome based on
-        similar past cases.</p>
+      <h2 data-i18n="predictTitle">Case Readiness Trainer</h2>
+      <p class="page-sub" data-i18n="predictSub">Pressure-test your case with judge and opposing-lawyer questions, then
+        see your weak spots and confidence score.</p>
 
       <div class="card">
-        <h3 data-i18n="predictDescCase">Describe Your Case</h3>
+        <h3 data-i18n="predictDescCase">Build Your Practice Round</h3>
         <label data-i18n="predictCaseType">Case Type</label>
         <select class="form-select" id="predictCaseType">
           <option value="" data-i18n="predictSelectType">Select case type...</option>
@@ -964,10 +964,10 @@
           <option value="consumer" data-i18n="pt_consumer">Consumer Complaint</option>
         </select>
 
-        <label data-i18n="predictKeyFacts">Key Facts</label>
+        <label data-i18n="predictKeyFacts">Your Version of Events</label>
         <div class="input-with-voice">
           <textarea class="form-textarea" id="predictFacts" data-i18n-placeholder="predictFactsPh"
-            placeholder="Describe what happened, evidence you have, timeline..."></textarea>
+            placeholder="Describe what happened, your timeline, what proof you have, and what the other side may deny..."></textarea>
           <button class="voice-input-btn" data-voice-target="predictFacts" type="button" aria-label="Voice input">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
               <path
@@ -991,13 +991,13 @@
           <label class="check-item"><input type="checkbox" value="none"> <span data-i18n="ev_none">None</span></label>
         </div>
 
-        <button class="btn btn-primary" id="predictBtn" style="margin-top:16px;" data-i18n="predictBtn">Predict
-          Outcome</button>
+        <button class="btn btn-primary" id="predictBtn" style="margin-top:16px;" data-i18n="predictBtn">Check My
+          Readiness</button>
       </div>
 
       <!-- Prediction Results -->
       <div class="card predict-results" id="predictResults" style="display:none;">
-        <h3 data-i18n="predictResults">Prediction Results</h3>
+        <h3 data-i18n="predictResults">Practice Round Report</h3>
 
         <div class="predict-meters">
           <div class="meter">
@@ -1009,39 +1009,49 @@
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-num" id="predTimeVal">—</div>
-            <div class="stat-label" data-i18n="predTimeline">Est. Timeline</div>
+            <div class="stat-label" data-i18n="predTimeline">Readiness Level</div>
           </div>
           <div class="stat-card">
             <div class="stat-num" id="predCostVal">—</div>
-            <div class="stat-label" data-i18n="predCost">Est. Cost</div>
+            <div class="stat-label" data-i18n="predCost">Pressure Level</div>
           </div>
           <div class="stat-card">
             <div class="stat-num" id="predSimilarVal">—</div>
-            <div class="stat-label" data-i18n="predSimilar">Similar Cases</div>
+            <div class="stat-label" data-i18n="predSimilar">Weak Areas</div>
           </div>
         </div>
 
         <!-- Applicable laws -->
         <div class="legal-ref-box">
-          <h4 data-i18n="predApplicableLaws">Applicable Laws & Sections</h4>
+          <h4 data-i18n="predApplicableLaws">Relevant Laws & Leverage Points</h4>
           <div id="predLawsList" class="law-tags"></div>
         </div>
 
         <!-- Similar cases breakdown -->
-        <h4 data-i18n="predSimilarLabel">Similar Cases (RAG Results)</h4>
-        <div class="similar-cases-bar">
-          <div class="sc-segment sc-won" id="scWon" style="width:60%"><span data-i18n="predWon">Won</span> 60%</div>
-          <div class="sc-segment sc-settled" id="scSettled" style="width:25%"><span
-              data-i18n="predSettled">Settled</span> 25%</div>
-          <div class="sc-segment sc-lost" id="scLost" style="width:15%"><span data-i18n="predLost">Lost</span> 15%</div>
+        <div class="predict-duel-grid">
+          <div class="practice-panel practice-panel-judge">
+            <h4 data-i18n="predJudgeTitle">Judge's Questions</h4>
+            <p class="practice-panel-sub" data-i18n="predJudgeSub">Questions a judge may ask to test clarity and credibility.</p>
+            <ul class="practice-list" id="predJudgeList"></ul>
+          </div>
+          <div class="practice-panel practice-panel-opposition">
+            <h4 data-i18n="predOpponentTitle">Opposing Lawyer</h4>
+            <p class="practice-panel-sub" data-i18n="predOpponentSub">Hard questions the other side may use against your version.</p>
+            <ul class="practice-list" id="predOpponentList"></ul>
+          </div>
+        </div>
+
+        <div class="weakness-box">
+          <h4 data-i18n="predWeaknessTitle">Weakness Report</h4>
+          <div id="predWeaknessList" class="weakness-list"></div>
         </div>
 
         <!-- Recommended next steps -->
-        <h4 data-i18n="predNextSteps">Recommended Next Steps</h4>
+        <h4 data-i18n="predNextSteps">How to Strengthen Your Case</h4>
         <ol class="how-list" id="predActionsList"></ol>
 
-        <p class="disclaimer" data-i18n="predDisclaimer">This prediction is based on similar past cases and is for
-          guidance only. Consult a lawyer for formal advice.</p>
+        <p class="disclaimer" data-i18n="predDisclaimer">This practice round is for legal awareness and preparation only.
+          It is not a court decision or formal legal advice.</p>
       </div>
     </section>
 
