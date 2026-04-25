@@ -68,6 +68,10 @@ body {
   transition: background-color var(--transition), color var(--transition);
 }
 
+#page-risk {
+  display: none !important;
+}
+
 /* ── SIDEBAR ──────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
