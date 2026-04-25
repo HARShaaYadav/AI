@@ -31,7 +31,10 @@
   let pendingSpeechRequestId = 0;
   let activeSpeechRequestId = 0;
   let browserSpeechActive = false;
+  let browserSpeechPaused = false;
   let currentBrowserUtterance = null;
+  let currentAssistantSpeechText = '';
+  let resumableAssistantSpeech = null;
   let pendingVapiSpeech = null;
   let pendingVapiReadyResolvers = [];
   let vapiUnavailableReason = null;
@@ -420,18 +423,83 @@
     }
   }
 
-  function stopBrowserSpeech() {
+  function setStopAudioButtonIcon(mode = 'stop') {
+    if (!stopAudioBtn) return;
+    if (mode === 'resume') {
+      stopAudioBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+          <path d="M8 6.5v11l9-5.5z"></path>
+        </svg>
+      `;
+      return;
+    }
+    stopAudioBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+        <rect x="7" y="7" width="10" height="10" rx="2"></rect>
+      </svg>
+    `;
+  }
+
+  function setResumableAssistantSpeech(text) {
+    const cleanedText = String(text || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/[#*_`>-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    resumableAssistantSpeech = cleanedText ? cleanedText : null;
+    updateStopAudioButtonLabel();
+  }
+
+  function pauseBrowserSpeech() {
+    if (!('speechSynthesis' in window) || !currentBrowserUtterance || window.speechSynthesis.paused) return false;
+    window.speechSynthesis.pause();
+    browserSpeechActive = false;
+    browserSpeechPaused = true;
+    setResumableAssistantSpeech(currentAssistantSpeechText);
+    return true;
+  }
+
+  function resumeBrowserSpeech() {
+    if (!('speechSynthesis' in window) || !window.speechSynthesis.paused) return false;
+    window.speechSynthesis.resume();
+    browserSpeechActive = true;
+    browserSpeechPaused = false;
+    resumableAssistantSpeech = null;
+    updateStopAudioButtonLabel();
+    return true;
+  }
+
+  function stopBrowserSpeech(clearResumeState = true) {
     if (!('speechSynthesis' in window)) return;
     browserSpeechActive = false;
+    browserSpeechPaused = false;
     currentBrowserUtterance = null;
+    if (clearResumeState) resumableAssistantSpeech = null;
     window.speechSynthesis.cancel();
+    updateStopAudioButtonLabel();
+  }
+
+  function resumeResponseAudio() {
+    if (resumeBrowserSpeech()) return;
+    if (!resumableAssistantSpeech) return;
+    const textToResume = resumableAssistantSpeech;
+    resumableAssistantSpeech = null;
+    updateStopAudioButtonLabel();
+    speakAssistantReplyInBrowser(textToResume);
   }
 
   function stopResponseAudio() {
+    if (browserSpeechPaused || resumableAssistantSpeech) {
+      resumeResponseAudio();
+      return;
+    }
+    if (pauseBrowserSpeech()) return;
+
     activeSpeechRequestId += 1;
+    setResumableAssistantSpeech(currentAssistantSpeechText);
     pendingVapiSpeech = null;
     clearPendingSpeechFallback();
-    stopBrowserSpeech();
+    stopBrowserSpeech(false);
     if (vapiInstance && vapiCallActive && vapiSessionMode === 'chat') {
       try {
         vapiInstance.stop();
@@ -446,9 +514,12 @@
 
   function updateStopAudioButtonLabel() {
     if (!stopAudioBtn) return;
-    const label = t('stopVoice');
+    const label = (browserSpeechPaused || resumableAssistantSpeech)
+      ? t('resumeVoice')
+      : (browserSpeechActive ? t('pauseVoice') : t('stopVoice'));
     stopAudioBtn.setAttribute('aria-label', label);
     stopAudioBtn.setAttribute('title', label);
+    setStopAudioButtonIcon((browserSpeechPaused || resumableAssistantSpeech) ? 'resume' : 'stop');
   }
 
   function startBrowserSpeechFallback(text, requestId) {
@@ -483,6 +554,10 @@
     rememberSpokenAssistantText(text);
     const requestId = ++pendingSpeechRequestId;
     activeSpeechRequestId = requestId;
+    currentAssistantSpeechText = text;
+    browserSpeechPaused = false;
+    resumableAssistantSpeech = null;
+    updateStopAudioButtonLabel();
     const requestedAt = Date.now();
     clearPendingSpeechFallback();
     try {
@@ -524,8 +599,12 @@
         .replace(/\s+/g, ' ')
         .trim();
       if (!cleanedText) return;
+      currentAssistantSpeechText = cleanedText;
+      browserSpeechPaused = false;
+      resumableAssistantSpeech = null;
       clearPendingSpeechFallback();
       browserSpeechActive = true;
+      updateStopAudioButtonLabel();
       const utterance = new SpeechSynthesisUtterance(cleanedText);
       currentBrowserUtterance = utterance;
       utterance.lang = getSpeechLang();
@@ -533,24 +612,34 @@
       utterance.onend = () => {
         if (currentBrowserUtterance === utterance) {
           browserSpeechActive = false;
+          browserSpeechPaused = false;
           currentBrowserUtterance = null;
+          resumableAssistantSpeech = null;
+          updateStopAudioButtonLabel();
           replayPendingVapiSpeech();
         }
       };
       utterance.onerror = () => {
         if (currentBrowserUtterance === utterance) {
           browserSpeechActive = false;
+          browserSpeechPaused = false;
           currentBrowserUtterance = null;
+          resumableAssistantSpeech = null;
           pendingVapiSpeech = null;
+          updateStopAudioButtonLabel();
         }
       };
       stopBrowserSpeech();
       browserSpeechActive = true;
+      browserSpeechPaused = false;
       currentBrowserUtterance = utterance;
       window.speechSynthesis.speak(utterance);
+      updateStopAudioButtonLabel();
     } catch (err) {
       browserSpeechActive = false;
+      browserSpeechPaused = false;
       currentBrowserUtterance = null;
+      updateStopAudioButtonLabel();
       console.error('Browser speech fallback failed:', err);
     }
   }
