@@ -479,10 +479,50 @@
     updateStopAudioButtonLabel();
   }
 
-  function resumeResponseAudio() {
+  async function resumeAssistantReplyWithVapi(text) {
+    if (!vapiInstance || !text || vapiUnavailableReason) return false;
+    const requestId = ++pendingSpeechRequestId;
+    activeSpeechRequestId = requestId;
+    currentAssistantSpeechText = text;
+    browserSpeechPaused = false;
+    resumableAssistantSpeech = null;
+    updateStopAudioButtonLabel();
+    const requestedAt = Date.now();
+    clearPendingSpeechFallback();
+
+    try {
+      const sessionReady = await ensureVapiSession('chat');
+      if (!sessionReady) return false;
+      vapiSessionMode = 'chat';
+      console.info('Resuming voice output source: vapi');
+      vapiInstance.send({
+        type: 'say',
+        content: text,
+        endCallAfterSpoken: false,
+      });
+    } catch (err) {
+      console.error('Vapi resume say failed:', err);
+      return false;
+    }
+
+    if (!browserVoiceFallbackEnabled) return true;
+
+    pendingSpeechFallbackTimer = setTimeout(() => {
+      if (requestId !== activeSpeechRequestId || browserSpeechActive) return;
+      if (lastSpeechStartAt < requestedAt) {
+        console.warn('Resumed Vapi speech did not start in time, falling back to browser speech');
+        startBrowserSpeechFallback(text, requestId);
+      }
+    }, 3500);
+    return true;
+  }
+
+  async function resumeResponseAudio() {
     if (resumeBrowserSpeech()) return;
     if (!resumableAssistantSpeech) return;
     const textToResume = resumableAssistantSpeech;
+    const resumedWithVapi = await resumeAssistantReplyWithVapi(textToResume);
+    if (resumedWithVapi) return;
     resumableAssistantSpeech = null;
     updateStopAudioButtonLabel();
     speakAssistantReplyInBrowser(textToResume);
