@@ -13,6 +13,9 @@ QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 BACKEND_URL = os.getenv("BACKEND_URL", "https://aivoice.up.railway.app")
 PRIMARY_LLM_MODEL = os.getenv("PRIMARY_LLM_MODEL", "gemini-2.5-flash")
 PRIMARY_LLM_TEMPERATURE = float(os.getenv("PRIMARY_LLM_TEMPERATURE", "0.4"))
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
 
 USE_MEMORY_QDRANT = QDRANT_URL.strip() in ("", ":memory:")
 

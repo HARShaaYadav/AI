@@ -1335,6 +1335,75 @@
           <div data-i18n="hl_senior">Senior Citizen</div>
         </a>
       </div>
+
+      <div class="card emergency-alert-card">
+        <div class="emergency-alert-head">
+          <div>
+            <h3 data-i18n="emergencyContactsTitle">Emergency Contacts Alert</h3>
+            <p class="setting-desc" data-i18n="emergencyContactsSub">Send your live location and an AI-written emergency message to trusted contacts.</p>
+          </div>
+          <div class="emergency-alert-badge" data-i18n="emergencyContactsBadge">Live GPS + Twilio</div>
+        </div>
+
+        <div class="emergency-alert-grid">
+          <div class="emergency-alert-field">
+            <label for="emergencyContacts" data-i18n="emergencyContactsLabel">Emergency contact numbers</label>
+            <textarea class="form-textarea emergency-textarea" id="emergencyContacts" rows="3"
+              data-i18n-placeholder="emergencyContactsPlaceholder"
+              placeholder="+919876543210, +919812345678"></textarea>
+            <div class="field-hint" data-i18n="emergencyContactsHint">Add up to 5 verified numbers, separated by commas or new lines.</div>
+          </div>
+
+          <div class="emergency-alert-field">
+            <label for="emergencyType" data-i18n="emergencyTypeLabel">Emergency type</label>
+            <select class="form-select" id="emergencyType">
+              <option value="general" data-i18n="emergencyTypeGeneral">General emergency</option>
+              <option value="medical" data-i18n="emergencyTypeMedical">Medical emergency</option>
+              <option value="violence" data-i18n="emergencyTypeViolence">Violence / unsafe situation</option>
+              <option value="theft" data-i18n="emergencyTypeTheft">Theft / robbery</option>
+              <option value="legal_help" data-i18n="emergencyTypeLegal">Urgent legal help</option>
+            </select>
+          </div>
+
+          <div class="emergency-alert-field">
+            <label for="emergencyMode" data-i18n="emergencyModeLabel">Delivery mode</label>
+            <select class="form-select" id="emergencyMode">
+              <option value="sms" data-i18n="emergencyModeSms">SMS</option>
+              <option value="call" data-i18n="emergencyModeCall">Voice call</option>
+            </select>
+          </div>
+
+          <div class="emergency-alert-field emergency-alert-field-wide">
+            <label for="emergencyCustomMessage" data-i18n="emergencyMessageLabel">Extra details</label>
+            <div class="input-with-voice">
+              <textarea class="form-textarea emergency-textarea" id="emergencyCustomMessage" rows="3"
+                data-i18n-placeholder="emergencyMessagePlaceholder"
+                placeholder="I am near the metro station and feel unsafe."></textarea>
+              <button class="voice-input-btn" data-voice-target="emergencyCustomMessage" type="button" aria-label="Voice input">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                  <path
+                    d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm6 6a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="emergency-location-box">
+          <div class="location-line">
+            <strong data-i18n="emergencyLocationLabel">Live location</strong>
+            <span id="emergencyLocationStatus" data-i18n="emergencyLocationIdle">Location not fetched yet.</span>
+          </div>
+          <div class="field-hint" data-i18n="emergencyLocationHint">We use your browser GPS and OpenStreetMap to send your live location.</div>
+        </div>
+
+        <div class="emergency-alert-actions">
+          <button class="btn btn-secondary" type="button" id="fetchEmergencyLocationBtn" data-i18n="emergencyFetchLocation">Fetch live location</button>
+          <button class="btn btn-primary" type="button" id="sendEmergencyAlertBtn" data-i18n="emergencySendButton">Send alert to emergency contacts</button>
+        </div>
+
+        <div class="emergency-alert-status" id="emergencyAlertStatus" aria-live="polite"></div>
+      </div>
     </section>
 
     <!-- ═══ PAGE: SETTINGS ═══ -->

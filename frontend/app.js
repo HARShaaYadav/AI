@@ -208,6 +208,15 @@
   const sendBtn = document.getElementById('sendBtn');
   const chatMessages = document.getElementById('chatMessages');
   const offlineBanner = document.getElementById('offlineBanner');
+  const emergencyContactsInput = document.getElementById('emergencyContacts');
+  const emergencyTypeSelect = document.getElementById('emergencyType');
+  const emergencyModeSelect = document.getElementById('emergencyMode');
+  const emergencyCustomMessageInput = document.getElementById('emergencyCustomMessage');
+  const emergencyLocationStatus = document.getElementById('emergencyLocationStatus');
+  const emergencyAlertStatus = document.getElementById('emergencyAlertStatus');
+  const fetchEmergencyLocationBtn = document.getElementById('fetchEmergencyLocationBtn');
+  const sendEmergencyAlertBtn = document.getElementById('sendEmergencyAlertBtn');
+  let emergencyLocation = null;
 
   function on(el, eventName, handler) {
     if (el) el.addEventListener(eventName, handler);
@@ -308,6 +317,127 @@
   }
 
   /* ── CHAT ──────────────────────────────────────────────── */
+  function parseEmergencyContacts(value) {
+    return String(value || '')
+      .split(/[\n,]+/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+  }
+
+  function persistEmergencyDraft() {
+    try {
+      localStorage.setItem('nyayavoice_emergency_contacts', emergencyContactsInput ? emergencyContactsInput.value : '');
+      localStorage.setItem('nyayavoice_emergency_type', emergencyTypeSelect ? emergencyTypeSelect.value : 'general');
+      localStorage.setItem('nyayavoice_emergency_mode', emergencyModeSelect ? emergencyModeSelect.value : 'sms');
+      localStorage.setItem('nyayavoice_emergency_message', emergencyCustomMessageInput ? emergencyCustomMessageInput.value : '');
+    } catch (_) {}
+  }
+
+  function setEmergencyStatus(message, type = '') {
+    if (!emergencyAlertStatus) return;
+    emergencyAlertStatus.textContent = message;
+    emergencyAlertStatus.classList.remove('is-error', 'is-success');
+    if (type) emergencyAlertStatus.classList.add(type === 'error' ? 'is-error' : 'is-success');
+  }
+
+  function setEmergencyLocationText(message) {
+    if (emergencyLocationStatus) emergencyLocationStatus.textContent = message;
+  }
+
+  async function fetchEmergencyLocation() {
+    if (!navigator.geolocation) {
+      setEmergencyLocationText(t('emergencyStatusLocationFailed'));
+      setEmergencyStatus(t('emergencyStatusLocationFailed'), 'error');
+      return null;
+    }
+
+    setEmergencyLocationText(t('emergencyLocationFetching'));
+    setEmergencyStatus('', '');
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        });
+      });
+
+      emergencyLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+
+      setEmergencyLocationText(
+        `${t('emergencyLocationReady')} ${emergencyLocation.latitude.toFixed(5)}, ${emergencyLocation.longitude.toFixed(5)}`
+      );
+      return emergencyLocation;
+    } catch (err) {
+      const denied = err && err.code === 1;
+      setEmergencyLocationText(denied ? t('emergencyStatusLocationDenied') : t('emergencyStatusLocationFailed'));
+      setEmergencyStatus(denied ? t('emergencyStatusLocationDenied') : t('emergencyStatusLocationFailed'), 'error');
+      return null;
+    }
+  }
+
+  async function sendEmergencyAlert() {
+    const contacts = parseEmergencyContacts(emergencyContactsInput ? emergencyContactsInput.value : '');
+    if (!contacts.length) {
+      setEmergencyStatus(t('emergencyStatusNeedContacts'), 'error');
+      return;
+    }
+
+    if (!emergencyLocation) {
+      const fetched = await fetchEmergencyLocation();
+      if (!fetched) return;
+    }
+
+    persistEmergencyDraft();
+    setEmergencyStatus(t('emergencyStatusSending'));
+    if (sendEmergencyAlertBtn) sendEmergencyAlertBtn.disabled = true;
+    if (fetchEmergencyLocationBtn) fetchEmergencyLocationBtn.disabled = true;
+
+    try {
+      const result = await apiCall('/api/emergency-alert', {
+        user_id: userId,
+        language: getLang(),
+        message_mode: emergencyModeSelect ? emergencyModeSelect.value : 'sms',
+        emergency_type: emergencyTypeSelect ? emergencyTypeSelect.value : 'general',
+        custom_message: emergencyCustomMessageInput ? emergencyCustomMessageInput.value.trim() : '',
+        contacts,
+        latitude: emergencyLocation.latitude,
+        longitude: emergencyLocation.longitude,
+      });
+
+      const deliveryLabel = result.delivery_mode === 'call' ? 'call(s)' : 'message(s)';
+      setEmergencyStatus(`${t('emergencyStatusSent')} ${result.deliveries.length} ${deliveryLabel} sent.`, 'success');
+      if (result.location_label) setEmergencyLocationText(result.location_label);
+    } catch (err) {
+      setEmergencyStatus(err.message || 'Emergency alert failed.', 'error');
+    } finally {
+      if (sendEmergencyAlertBtn) sendEmergencyAlertBtn.disabled = false;
+      if (fetchEmergencyLocationBtn) fetchEmergencyLocationBtn.disabled = false;
+    }
+  }
+
+  function initEmergencyAlertForm() {
+    if (!emergencyContactsInput) return;
+    try {
+      emergencyContactsInput.value = localStorage.getItem('nyayavoice_emergency_contacts') || '';
+      if (emergencyTypeSelect) emergencyTypeSelect.value = localStorage.getItem('nyayavoice_emergency_type') || 'general';
+      if (emergencyModeSelect) emergencyModeSelect.value = localStorage.getItem('nyayavoice_emergency_mode') || 'sms';
+      if (emergencyCustomMessageInput) emergencyCustomMessageInput.value = localStorage.getItem('nyayavoice_emergency_message') || '';
+    } catch (_) {}
+
+    on(emergencyContactsInput, 'input', persistEmergencyDraft);
+    on(emergencyTypeSelect, 'change', persistEmergencyDraft);
+    on(emergencyModeSelect, 'change', persistEmergencyDraft);
+    on(emergencyCustomMessageInput, 'input', persistEmergencyDraft);
+    on(fetchEmergencyLocationBtn, 'click', fetchEmergencyLocation);
+    on(sendEmergencyAlertBtn, 'click', sendEmergencyAlert);
+  }
+
   function escapeHtml(text) {
     return String(text)
       .replace(/&/g, '&amp;')
@@ -2309,6 +2439,7 @@
   /* ── INIT ──────────────────────────────────────────────── */
   initTheme();
   initLang();
+  initEmergencyAlertForm();
   updateStopAudioButtonLabel();
   const savedLang = getLang();
   [langSwitch, langMobile, settingsLang].forEach(sel => { if (sel) sel.value = savedLang; });

@@ -11,6 +11,7 @@ from backend.routes.query import router as query_router
 from backend.routes.document import router as document_router
 from backend.routes.memory import router as memory_router
 from backend.routes.predictor import router as predictor_router
+from backend.routes.emergency import router as emergency_router
 from backend.services.qdrant import ensure_collections, seed_legal_document
 from backend.config import BACKEND_URL, PRIMARY_LLM_MODEL, VAPI_API_KEY, VAPI_PUBLIC_KEY
 from backend.prompts import get_language_name, get_shared_system_prompt
@@ -54,6 +55,7 @@ app.include_router(query_router, prefix="/api", tags=["Query"])
 app.include_router(document_router, prefix="/api", tags=["Document"])
 app.include_router(memory_router, prefix="/api", tags=["Memory"])
 app.include_router(predictor_router, prefix="/api", tags=["Predictor"])
+app.include_router(emergency_router, prefix="/api", tags=["Emergency"])
 
 
 @app.on_event("startup")
