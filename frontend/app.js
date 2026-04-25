@@ -2304,9 +2304,11 @@
 
   function openAuthModal() {
     if (authModal) authModal.classList.add('auth-modal-open');
+    if (landingScreen) landingScreen.classList.add('auth-active');
   }
   function closeAuthModal() {
     if (authModal) authModal.classList.remove('auth-modal-open');
+    if (landingScreen) landingScreen.classList.remove('auth-active');
   }
 
   if (getStartedBtn) {

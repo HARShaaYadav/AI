@@ -208,13 +208,21 @@
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(10px);
       padding: 1rem;
       box-sizing: border-box;
     }
 
     #authModal.auth-modal-open {
       display: flex;
+    }
+
+    #landingScreen.auth-active .landing-inner,
+    #landingScreen.auth-active .landing-emergency,
+    #landingScreen.auth-active .landing-lang {
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .auth-modal-card {
