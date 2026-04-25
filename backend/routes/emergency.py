@@ -1,3 +1,4 @@
+import html
 import logging
 from typing import Any, Dict, List, Literal, Optional
 
@@ -278,6 +279,62 @@ async def _make_voice_call_via_vapi(to_number: str, body: str, language: str) ->
     }
 
 
+async def _make_voice_call_with_fallback(to_number: str, body: str, language: str) -> Dict[str, Any]:
+    vapi_ready = bool(VAPI_API_KEY and VAPI_PHONE_NUMBER_ID)
+
+    if vapi_ready:
+        try:
+            return await _make_voice_call_via_vapi(to_number, body, language)
+        except Exception as err:
+            logger.warning("Vapi outbound call failed for %s, falling back to Twilio voice call: %s", to_number, err)
+
+    if not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER):
+        if vapi_ready:
+            raise HTTPException(
+                status_code=502,
+                detail="Vapi outbound call failed and Twilio fallback is not configured.",
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Voice calling is not configured. "
+                "Set VAPI_API_KEY and VAPI_PHONE_NUMBER_ID for Vapi, "
+                "or TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER for fallback."
+            ),
+        )
+
+    return await _make_voice_call_via_twilio(to_number, body)
+
+
+async def _make_voice_call_via_twilio(to_number: str, body: str) -> Dict[str, Any]:
+    twiml = (
+        "<Response>"
+        "<Pause length=\"1\"/>"
+        f"<Say voice=\"alice\">{html.escape(body)}</Say>"
+        "</Response>"
+    )
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+        response = await client.post(
+            f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Calls.json",
+            auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN),
+            data={
+                "To": to_number,
+                "From": TWILIO_PHONE_NUMBER,
+                "Twiml": twiml,
+            },
+        )
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Twilio call failed for {to_number}: {response.text}")
+    data = response.json()
+    return {
+        "to": to_number,
+        "sid": data.get("sid"),
+        "status": data.get("status"),
+        "type": "call",
+        "provider": "twilio",
+    }
+
+
 @router.post("/emergency-alert", response_model=EmergencyAlertResponse)
 async def send_emergency_alert(req: EmergencyAlertRequest) -> EmergencyAlertResponse:
     if req.message_mode == "sms" and not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER):
@@ -320,7 +377,7 @@ async def send_emergency_alert(req: EmergencyAlertRequest) -> EmergencyAlertResp
     deliveries: List[Dict[str, Any]] = []
     for contact in req.contacts:
         if req.message_mode == "call":
-            deliveries.append(await _make_voice_call_via_vapi(contact, final_message, req.language))
+            deliveries.append(await _make_voice_call_with_fallback(contact, final_message, req.language))
         else:
             deliveries.append(await _send_sms_via_twilio(contact, final_message))
 
