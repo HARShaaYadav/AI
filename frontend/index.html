@@ -466,23 +466,23 @@
       </div>
       <form class="auth-form" id="authLoginForm">
         <label for="authLoginEmail" data-i18n="authEmail">Email</label>
-        <input type="email" id="authLoginEmail" autocomplete="email">
+        <input type="email" id="authLoginEmail" autocomplete="email" required>
         <label for="authLoginPassword" data-i18n="authPassword">Password</label>
-        <input type="password" id="authLoginPassword" autocomplete="current-password">
+        <input type="password" id="authLoginPassword" autocomplete="current-password" required minlength="6">
         <a href="#" class="auth-forgot" data-i18n="authForgotPw">Forgot password?</a>
-        <button type="button" class="btn-auth-submit" id="authLoginBtn" data-i18n="authLoginBtn">Login</button>
+        <button type="submit" class="btn-auth-submit" id="authLoginBtn" data-i18n="authLoginBtn">Login</button>
         <p class="auth-or-demo" data-i18n="authOrDemo">Or continue with demo access</p>
       </form>
       <form class="auth-form" id="authSignupForm" style="display:none;">
         <label for="authSignupName" data-i18n="authName">Name</label>
-        <input type="text" id="authSignupName" autocomplete="name">
+        <input type="text" id="authSignupName" autocomplete="name" required>
         <label for="authSignupEmail" data-i18n="authEmail">Email</label>
-        <input type="email" id="authSignupEmail" autocomplete="email">
+        <input type="email" id="authSignupEmail" autocomplete="email" required>
         <label for="authSignupPassword" data-i18n="authPassword">Password</label>
-        <input type="password" id="authSignupPassword" autocomplete="new-password">
+        <input type="password" id="authSignupPassword" autocomplete="new-password" required minlength="6">
         <label for="authSignupConfirm" data-i18n="authConfirmPw">Confirm Password</label>
-        <input type="password" id="authSignupConfirm" autocomplete="new-password">
-        <button type="button" class="btn-auth-submit" id="authSignupBtn" data-i18n="authSignupBtn">Sign Up</button>
+        <input type="password" id="authSignupConfirm" autocomplete="new-password" required minlength="6">
+        <button type="submit" class="btn-auth-submit" id="authSignupBtn" data-i18n="authSignupBtn">Sign Up</button>
       </form>
     </div>
   </div>

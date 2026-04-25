@@ -2311,8 +2311,9 @@
 
   if (getStartedBtn) {
     getStartedBtn.addEventListener('click', () => {
-      enterMainApp();
       openAuthModal();
+      const emailInput = document.getElementById('authLoginEmail');
+      if (emailInput) emailInput.focus();
     });
   }
 
@@ -2378,19 +2379,62 @@
     }
   }
 
-  if (authLoginBtn) {
-    authLoginBtn.addEventListener('click', () => {
+  function finishAuth(nameOrEmail) {
+    setUserGreetingFromAuth(nameOrEmail);
+    closeAuthModal();
+    enterMainApp();
+  }
+
+  if (authLoginForm) {
+    authLoginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
       const email = document.getElementById('authLoginEmail');
-      setUserGreetingFromAuth(email && email.value ? email.value.split('@')[0] : '');
-      closeAuthModal();
+      const password = document.getElementById('authLoginPassword');
+
+      if (!authLoginForm.reportValidity()) return;
+      if (!password || !password.value.trim()) return;
+
+      finishAuth(email && email.value ? email.value.split('@')[0] : '');
     });
   }
-  if (authSignupBtn) {
-    authSignupBtn.addEventListener('click', () => {
+
+  if (authSignupForm) {
+    authSignupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
       const nameEl = document.getElementById('authSignupName');
-      setUserGreetingFromAuth(nameEl && nameEl.value ? nameEl.value : '');
-      closeAuthModal();
+      const passwordEl = document.getElementById('authSignupPassword');
+      const confirmEl = document.getElementById('authSignupConfirm');
+
+      if (confirmEl && passwordEl) {
+        confirmEl.setCustomValidity(
+          confirmEl.value && passwordEl.value && confirmEl.value !== passwordEl.value
+            ? 'Passwords do not match.'
+            : ''
+        );
+      }
+
+      if (!authSignupForm.reportValidity()) return;
+
+      finishAuth(nameEl && nameEl.value ? nameEl.value : '');
     });
+  }
+
+  if (authSignupBtn) {
+    const syncSignupValidity = () => {
+      const passwordEl = document.getElementById('authSignupPassword');
+      const confirmEl = document.getElementById('authSignupConfirm');
+      if (!passwordEl || !confirmEl) return;
+      confirmEl.setCustomValidity(
+        confirmEl.value && passwordEl.value && confirmEl.value !== passwordEl.value
+          ? 'Passwords do not match.'
+          : ''
+      );
+    };
+
+    const passwordEl = document.getElementById('authSignupPassword');
+    const confirmEl = document.getElementById('authSignupConfirm');
+    if (passwordEl) passwordEl.addEventListener('input', syncSignupValidity);
+    if (confirmEl) confirmEl.addEventListener('input', syncSignupValidity);
   }
 
   document.querySelectorAll('.auth-forgot').forEach(a => {
