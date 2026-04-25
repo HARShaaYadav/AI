@@ -174,14 +174,30 @@ def _build_vapi_emergency_assistant(*, body: str, language: str) -> Dict[str, An
     return {
         "firstMessage": body,
         "firstMessageMode": "assistant-speaks-first",
+        "firstMessageInterruptionsEnabled": False,
         "backgroundSound": "off",
         "maxDurationSeconds": 40,
         "endCallMessage": None,
         "hooks": [
             {
                 "on": "call.timeElapsed",
-                "options": {"seconds": 18},
+                "options": {"seconds": 2},
                 "do": [
+                    {
+                        "type": "say",
+                        "exact": body,
+                    }
+                ],
+                "name": "speak_emergency_alert",
+            },
+            {
+                "on": "call.timeElapsed",
+                "options": {"seconds": 20},
+                "do": [
+                    {
+                        "type": "say",
+                        "exact": "Goodbye.",
+                    },
                     {
                         "type": "tool",
                         "tool": {"type": "endCall"},
