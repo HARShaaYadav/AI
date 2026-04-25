@@ -1,4 +1,3 @@
-import html
 import logging
 from typing import Any, Dict, List, Literal, Optional
 
@@ -7,11 +6,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from backend.config import (
-    BACKEND_URL,
     TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN,
     TWILIO_PHONE_NUMBER,
     VAPI_API_KEY,
+    VAPI_PHONE_NUMBER_ID,
 )
 
 logger = logging.getLogger(__name__)
@@ -170,32 +169,102 @@ async def _send_sms_via_twilio(to_number: str, body: str) -> Dict[str, Any]:
     }
 
 
-async def _make_voice_call_via_twilio(to_number: str, body: str) -> Dict[str, Any]:
-    twiml = f"<Response><Say voice=\"alice\">{html.escape(body)}</Say></Response>"
+def _build_vapi_emergency_assistant(*, body: str, language: str) -> Dict[str, Any]:
+    language_name = "Hindi" if language == "hi" else "English"
+    return {
+        "firstMessage": body,
+        "firstMessageMode": "assistant-speaks-first",
+        "backgroundSound": "off",
+        "maxDurationSeconds": 40,
+        "endCallMessage": None,
+        "hooks": [
+            {
+                "on": "call.timeElapsed",
+                "options": {"seconds": 18},
+                "do": [
+                    {
+                        "type": "tool",
+                        "tool": {"type": "endCall"},
+                    }
+                ],
+                "name": "auto_end_emergency_call",
+            }
+        ],
+        "model": {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "temperature": 0.2,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an automated emergency contact notifier for NyayaVoice. "
+                        f"Speak in {language_name}. "
+                        "Start by reading the emergency alert exactly as provided in the first message. "
+                        "If the recipient asks a question, briefly explain that this is an automated emergency alert, "
+                        "repeat the live location if needed, and ask them to contact the user immediately. "
+                        "Keep every reply under 30 words."
+                    ),
+                }
+            ],
+        },
+        "voice": {
+            "provider": "azure",
+            "voiceId": "multilingual-auto",
+        },
+        "transcriber": {
+            "provider": "deepgram",
+            "model": "nova-2",
+            "language": "multi",
+        },
+    }
+
+
+async def _make_voice_call_via_vapi(to_number: str, body: str, language: str) -> Dict[str, Any]:
+    if not VAPI_API_KEY:
+        raise HTTPException(status_code=500, detail="Vapi is not configured. Set VAPI_API_KEY.")
+    if not VAPI_PHONE_NUMBER_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="Vapi outbound calling is not configured. Set VAPI_PHONE_NUMBER_ID from your Vapi phone number.",
+        )
+
+    payload = {
+        "assistant": _build_vapi_emergency_assistant(body=body, language=language),
+        "phoneNumberId": VAPI_PHONE_NUMBER_ID,
+        "customer": {
+            "number": to_number,
+        },
+        "metadata": {
+            "purpose": "emergency_contact_alert",
+            "language": language,
+        },
+    }
+
     async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
         response = await client.post(
-            f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Calls.json",
-            auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN),
-            data={
-                "To": to_number,
-                "From": TWILIO_PHONE_NUMBER,
-                "Twiml": twiml,
+            "https://api.vapi.ai/call",
+            headers={
+                "Authorization": f"Bearer {VAPI_API_KEY}",
+                "Content-Type": "application/json",
             },
+            json=payload,
         )
     if response.status_code >= 400:
-        raise HTTPException(status_code=502, detail=f"Twilio call failed for {to_number}: {response.text}")
+        raise HTTPException(status_code=502, detail=f"Vapi call failed for {to_number}: {response.text}")
     data = response.json()
     return {
         "to": to_number,
-        "sid": data.get("sid"),
+        "sid": data.get("id"),
         "status": data.get("status"),
         "type": "call",
+        "provider": "vapi",
     }
 
 
 @router.post("/emergency-alert", response_model=EmergencyAlertResponse)
 async def send_emergency_alert(req: EmergencyAlertRequest) -> EmergencyAlertResponse:
-    if not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER):
+    if req.message_mode == "sms" and not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER):
         raise HTTPException(
             status_code=500,
             detail="Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.",
@@ -235,7 +304,7 @@ async def send_emergency_alert(req: EmergencyAlertRequest) -> EmergencyAlertResp
     deliveries: List[Dict[str, Any]] = []
     for contact in req.contacts:
         if req.message_mode == "call":
-            deliveries.append(await _make_voice_call_via_twilio(contact, final_message))
+            deliveries.append(await _make_voice_call_via_vapi(contact, final_message, req.language))
         else:
             deliveries.append(await _send_sms_via_twilio(contact, final_message))
 

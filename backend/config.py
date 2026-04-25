@@ -5,6 +5,7 @@ load_dotenv()
 
 VAPI_API_KEY = os.getenv("VAPI_API_KEY", "")
 VAPI_PUBLIC_KEY = os.getenv("VAPI_PUBLIC_KEY", "")
+VAPI_PHONE_NUMBER_ID = os.getenv("VAPI_PHONE_NUMBER_ID", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GOOGLE_GENAI_API_KEY = os.getenv("GOOGLE_GENAI_API_KEY", os.getenv("GEMINI_API_KEY", ""))

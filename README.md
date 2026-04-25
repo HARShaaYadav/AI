@@ -42,9 +42,12 @@ Edit `.env` with your Vapi credentials:
 ```
 VAPI_API_KEY=your-vapi-api-key-here
 VAPI_PUBLIC_KEY=your-vapi-public-key-here
+VAPI_PHONE_NUMBER_ID=your-vapi-phone-number-id-here
 QDRANT_URL=:memory:
 BACKEND_URL=http://localhost:8000
 ```
+
+For outbound emergency voice alerts, also set `VAPI_PHONE_NUMBER_ID` from your Vapi Phone Numbers dashboard.
 
 **How to get Vapi keys:**
 1. Sign up at [vapi.ai](https://vapi.ai)
