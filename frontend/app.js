@@ -1432,15 +1432,15 @@
     newMicStatus = document.getElementById('micStatus');
   }
 
-  on(newMicBtn, 'click', () => {
-    if (vapiInstance) {
-      startVapiCall();
-    } else {
-      startWebSpeechDashboard();
+  on(newMicBtn, 'click', async () => {
+    if (vapiInstance && vapiCallActive && vapiSessionMode === 'voice') {
+      await startVapiCall();
+      return;
     }
+    startWebSpeechDashboard();
   });
 
-  function startVapiCall() {
+  async function startVapiCall() {
     if (newMicBtn.classList.contains('listening') || (vapiCallActive && vapiSessionMode === 'voice')) {
       clearPendingSpeechFallback();
       stopBrowserSpeech();
@@ -1465,19 +1465,20 @@
     }
     newMicBtn.classList.add('listening');
     newMicStatus.textContent = t('vcListening');
-
-    vapiInstance.start({
-      serverUrl: API_BASE + '/vapi-webhook',
-      serverUrlSecret: '',
-      metadata: { user_id: userId, language: getLang(), mode: 'voice' },
-    }).catch(err => {
+    try {
+      const sessionReady = await ensureVapiSession('voice');
+      if (!sessionReady) throw new Error('vapi_voice_session_not_ready');
+      vapiSessionMode = 'voice';
+      vapiSessionLanguage = getLang();
+    } catch (err) {
       console.error('Vapi call failed:', err);
       newMicBtn.classList.remove('listening');
       newMicStatus.textContent = t('vcReady');
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
       startWebSpeechDashboard();
-    });
-    vapiCallActive = true;
-    vapiSessionMode = 'voice';
+    }
   }
 
   /* ── WEB SPEECH API — Fallback Voice Input ─────────────── */
@@ -1493,6 +1494,17 @@
     if (!SpeechRecognition) {
       alert(getLang() === 'hi' ? 'आपका ब्राउज़र वॉइस इनपुट का समर्थन नहीं करता।' : 'Your browser does not support voice input.');
       return;
+    }
+
+    if (vapiInstance && vapiCallActive && vapiSessionMode === 'voice') {
+      try {
+        vapiInstance.stop();
+      } catch (err) {
+        console.error('Vapi stop before browser speech failed:', err);
+      }
+      vapiCallActive = false;
+      vapiSessionMode = null;
+      vapiSessionLanguage = null;
     }
 
     if (newMicBtn.classList.contains('listening')) {
