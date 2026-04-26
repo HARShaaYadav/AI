@@ -22,6 +22,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def _get_vapi_voice_config(language: str) -> Dict[str, Any]:
+    language = (language or "en").lower()
+    if language == "hi":
+        return {
+            "provider": "azure",
+            "voiceId": "hi-IN-SwaraNeural",
+        }
+    return {
+        "provider": "azure",
+        "voiceId": "en-IN-NeerjaNeural",
+    }
+
+
+def _get_vapi_transcriber_config(language: str) -> Dict[str, Any]:
+    language = (language or "en").lower()
+    deepgram_language = "hi" if language == "hi" else "en-IN"
+    return {
+        "provider": "deepgram",
+        "model": "nova-2",
+        "language": deepgram_language,
+    }
+
 BASE_DIR = os.path.dirname(__file__)
 DOCS_DIR = os.path.join(BASE_DIR, "generated_docs")
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
@@ -213,12 +236,8 @@ async def vapi_webhook(request: Request):
                         },
                     ],
                 },
-                "voice": {"provider": "azure", "voiceId": "multilingual-auto"},
-                "transcriber": {
-                    "provider": "deepgram",
-                    "model": "nova-2",
-                    "language": "multi",
-                },
+                "voice": _get_vapi_voice_config(language),
+                "transcriber": _get_vapi_transcriber_config(language),
             }
         })
 

@@ -172,6 +172,8 @@ async def _send_sms_via_twilio(to_number: str, body: str) -> Dict[str, Any]:
 
 def _build_vapi_emergency_assistant(*, body: str, language: str) -> Dict[str, Any]:
     language_name = "Hindi" if language == "hi" else "English"
+    voice_id = "hi-IN-SwaraNeural" if language == "hi" else "en-IN-NeerjaNeural"
+    transcriber_language = "hi" if language == "hi" else "en-IN"
     return {
         "firstMessage": body,
         "firstMessageMode": "assistant-speaks-first",
@@ -227,12 +229,12 @@ def _build_vapi_emergency_assistant(*, body: str, language: str) -> Dict[str, An
         },
         "voice": {
             "provider": "azure",
-            "voiceId": "multilingual-auto",
+            "voiceId": voice_id,
         },
         "transcriber": {
             "provider": "deepgram",
             "model": "nova-2",
-            "language": "multi",
+            "language": transcriber_language,
         },
     }
 
