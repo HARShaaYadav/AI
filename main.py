@@ -300,7 +300,6 @@ async def vapi_webhook(request: Request):
         if fn_name == "generate_document":
             from backend.services.llm import generate_document_content
             from backend.services.document_gen import generate_pdf
-            from backend.config import BACKEND_URL
 
             user_id = params.get("user_id", "anonymous")
             doc_type = params.get("doc_type", "Complaint Letter")
@@ -309,7 +308,7 @@ async def vapi_webhook(request: Request):
             content = generate_document_content(doc_type, details)
             filepath = generate_pdf(user_id=user_id, doc_type=doc_type, content=content, details=details)
             filename = os.path.basename(filepath)
-            doc_url = f"{BACKEND_URL}/api/docs/{filename}"
+            doc_url = f"/api/docs/{filename}"
 
             return _tool_result_response(f"Your {doc_type} has been generated. Download it here: {doc_url}")
 

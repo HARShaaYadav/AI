@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from backend.services.llm import generate_document_content
 from backend.services.document_gen import generate_pdf
-from backend.config import BACKEND_URL, VALID_DOC_TYPES
+from backend.config import VALID_DOC_TYPES
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -51,7 +51,7 @@ async def generate_document(req: DocumentRequest):
     )
 
     filename = os.path.basename(filepath)
-    document_url = f"{BACKEND_URL}/api/docs/{filename}"
+    document_url = f"/api/docs/{filename}"
 
     return DocumentResponse(
         document_url=document_url,
